@@ -62,8 +62,7 @@ export function withAuth(handler) {
       premiumExpiryDate: user.premiumExpiryDate,
     };
 
-    // console.log("Authenticated user:", req.user);
-
+    
     return handler(req, context);
   };
 }

@@ -1,80 +1,102 @@
-import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/db';
-import Contribution from '@/models/Contribution';
 import User from '@/models/User';
 import { withAuth } from '@/middleware/auth';
 
-// -------------------- GET Contributions --------------------
-async function getHandler(req, context) {
+export const PATCH = withAuth(async (req) => {
   try {
-    await connectToDatabase();
+    const userId = req.user.userId; // from withAuth
+    const body = await req.json();
+    const { contributionPoints } = body;
 
-    const { cityName } = await context.params;
-    const formattedCityName = decodeURIComponent(cityName).toLowerCase();
-
-    const contributions = await Contribution.find({
-      cityName: { $regex: new RegExp(`^${formattedCityName}$`, 'i') },
-    });
-
-    if (!contributions.length) {
-      return NextResponse.json({ error: 'No contributions found' }, { status: 404 });
+    if (contributionPoints === undefined) {
+      return new Response(
+        JSON.stringify({ error: 'contributionPoints is required' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
     }
 
-    const contributionIds = contributions.map(con => con._id);
+    await connectToDatabase();
+    const user = await User.findById(userId);
 
-    await Contribution.updateMany(
-      { _id: { $in: contributionIds } },
-      { $inc: { 'engagement.views': 1 } }
+    if (!user) {
+      return new Response(
+        JSON.stringify({ error: 'User not found' }),
+        { status: 404, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    const storedMonth = user.pointsMonth?.getMonth();
+    const storedYear = user.pointsMonth?.getFullYear();
+
+    // Reset if new month
+    if (storedMonth !== currentMonth || storedYear !== currentYear) {
+      user.monthlyPoints = 0;
+      user.pointsMonth = now;
+    }
+
+    // Enforce monthly cap of 90 (no error, just skip adding more)
+    let addedPoints = 0;
+    if (user.monthlyPoints < 90) {
+      const available = 90 - user.monthlyPoints;
+      addedPoints = Math.min(contributionPoints, available);
+
+      user.monthlyPoints += addedPoints;
+      user.contributionPoints += addedPoints;
+      await user.save();
+    }
+
+    return new Response(
+      JSON.stringify({
+        message: addedPoints > 0
+          ? 'Contribution points updated'
+          : 'Monthly limit reached, no points added',
+        contributionPoints: user.contributionPoints,
+        monthlyPoints: user.monthlyPoints,
+        addedPoints,
+      }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
-
-    const updated = await Contribution.find({ _id: { $in: contributionIds } });
-
-    return NextResponse.json(updated);
   } catch (error) {
-    console.error('Error fetching contributions:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    console.error('Error updating contribution points:', error);
+    return new Response(
+      JSON.stringify({ error: 'Internal Server Error' }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
   }
-}
+});
 
-// -------------------- POST Contribution --------------------
-async function postHandler(req) {
-  try {
-    await connectToDatabase();
 
-    const user = req.user; // from withAuth middleware
-    const { cityName, category, title, description, images, video } = await req.json();
 
-    if (!category || !title) {
-      return NextResponse.json({ error: 'Category and title are required' }, { status: 400 });
-    }
+// -------------------- GET User Contribution Points --------------------
+// export const GET = withAuth(async (req) => {
+//   try {
+//     const userId = req.user.userId; // from withAuth
 
-    const contribution = new Contribution({
-      userId: user._id,
-      username: user.username,
-      cityName,
-      category,
-      title,
-      description,
-      images: images || [],
-      video: video || '',
-    });
+//     await connectToDatabase();
 
-    await contribution.save();
+//     const user = await User.findById(userId).select('contributionPoints');
 
-    // Award points to user
-    const pointsToAdd = 10; // Example: 10 points per contribution
-    await User.findByIdAndUpdate(user._id, { $inc: { points: pointsToAdd } });
+//     if (!user) {
+//       return new Response(
+//         JSON.stringify({ error: 'User not found' }),
+//         { status: 404, headers: { 'Content-Type': 'application/json' } }
+//       );
+//     }
 
-    return NextResponse.json({
-      message: 'Contribution submitted successfully',
-      contribution,
-      pointsAwarded: pointsToAdd,
-    });
-  } catch (error) {
-    console.error('Error submitting contribution:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
-  }
-}
+//     return new Response(
+//       JSON.stringify({ contributionPoints: user.contributionPoints }),
+//       { status: 200, headers: { 'Content-Type': 'application/json' } }
+//     );
+//   } catch (error) {
+//     console.error('Error fetching contribution points:', error);
+//     return new Response(
+//       JSON.stringify({ error: 'Internal Server Error' }),
+//       { status: 500, headers: { 'Content-Type': 'application/json' } }
+//     );
+//   }
+// });
 
-export const GET = withAuth(getHandler);
-export const POST = withAuth(postHandler);
+

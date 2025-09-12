@@ -30,6 +30,7 @@ export async function GET(req) {
         isPremium: user.isPremium,
         premiumStartDate: user.premiumStartDate,
         premiumExpiryDate: user.premiumExpiryDate,
+        points: user.contributionPoints || 0,
       },
     });
   } catch (err) {

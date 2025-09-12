@@ -72,24 +72,23 @@ export async function GET(req) {
 
    if (!user) {
     if (phone) {
+
       // ✅ Normal signup with phone (already in your code)
-      let referredByUserId = null;
-      if (referredBy) {
-        const refUser = await User.findOne({ referralCode: referredBy });
-        if (refUser) {
-          referredByUserId = refUser._id;
-
-          // Increment referral count and extend premium
-          refUser.referralCount += 1;
-          const extraDays = 30 * 24 * 60 * 60 * 1000;
-          refUser.premiumExpiryDate =
-            refUser.premiumExpiryDate && refUser.premiumExpiryDate > new Date()
-              ? new Date(refUser.premiumExpiryDate.getTime() + extraDays)
-              : new Date(Date.now() + extraDays);
-
-          await refUser.save();
+        let referredByUserId = null;
+        if (referredBy) {
+          const refUser = await User.findOne({ referralCode: referredBy });
+          if (refUser) {
+            referredByUserId = refUser._id;
+            refUser.referralCount += 1;
+            refUser.contributionPoints += 5;
+            await refUser.save();
+            try {
+              await extendUserPremium(refUser._id);
+            } catch (err) {
+              console.error("Failed to extend referrer premium:", err);
+            }
+          }
         }
-      }
 
       const newReferralCode = phone;
 
@@ -100,6 +99,7 @@ export async function GET(req) {
         googleId: profile.id,
         phone,
         isPhoneVerified: true,
+        contributionPoints: 2,
         referredBy: referredByUserId,
         referralCode: newReferralCode,
         password: '',
@@ -119,8 +119,8 @@ export async function GET(req) {
       name: 'token',
       value: token,
       httpOnly: true,
-  secure: process.env.NODE_ENV === "production", // only secure in prod
-  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    secure: process.env.NODE_ENV === "production", // only secure in prod
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
       path: '/',
       maxAge: 60 * 60 * 24 * 7, // 7 days
     });

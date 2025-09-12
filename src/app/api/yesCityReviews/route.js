@@ -11,21 +11,22 @@ async function handler(req) {
     await connectToDatabase();
 
     const body = await req.json();
-    const { rating, content, createdBy } = body;
+    const { rating, content } = body; // ❌ removed createdBy from body
     const date = new Date().toISOString().split('T')[0];
 
-    console.log(body);
+    const userId = req.user.userId; // ✅ from withAuth
 
-    if (!rating || !content || !createdBy) {
-      return new Response(JSON.stringify({ message: 'All fields are required.', success: false }), {
-        status: 400,
-      });
+    if (!rating || !content) {
+      return new Response(
+        JSON.stringify({ message: 'Rating and content are required.', success: false }),
+        { status: 400 }
+      );
     }
 
     const newReview = await YesCityReview.create({
       rating,
       content,
-      createdBy,
+      createdBy: userId, // ✅ taken from auth middleware
       date,
     });
 
@@ -39,12 +40,14 @@ async function handler(req) {
     );
   } catch (error) {
     console.error('Error saving review:', error);
-    return new Response(JSON.stringify({ message: 'Internal Server Error', success: false }), {
-      status: 500,
-    });
+    return new Response(
+      JSON.stringify({ message: 'Internal Server Error', success: false }),
+      { status: 500 }
+    );
   }
 }
 export const POST = withAuth(handler);
+
 
 // GET route
 export async function GET() {

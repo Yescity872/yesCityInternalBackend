@@ -21,6 +21,7 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: 'https://i.pinimg.com/736x/57/00/c0/5700c04197ee9a4372a35ef16eb78f4e.jpg',
   },
+  firstProfile:{type: Boolean, default: false},
   phone: {
     type: String,
     required: true,
@@ -66,10 +67,19 @@ const userSchema = new mongoose.Schema({
   referredBy: {
     type: String,
   },
-  contributionPoints: {
-    type: Number,
-    default: 0,
-  },
+contributionPoints: {
+  type: Number,
+  default: 0,
+},
+monthlyPoints: {
+  type: Number,
+  default: 0,
+},
+pointsMonth: {
+  type: Date,
+  default: Date.now,
+},
+
   referralCount: {
     type: Number,
     default: 0,

@@ -42,6 +42,7 @@ export async function POST(req) {
       if (refUser) {
         referredByUserId = refUser._id;
         refUser.referralCount += 1;
+        refUser.contributionPoints += 5;
         await refUser.save();
         try {
           await extendUserPremium(refUser._id);
@@ -64,7 +65,9 @@ export async function POST(req) {
       referredBy: referredByUserId,
       profileImage,
       isPremium: 'FREE',
+      contributionPoints: 2, // ✅ initialize with 0
     });
+
 
     // Sign JWT
     const token = jwt.sign(
