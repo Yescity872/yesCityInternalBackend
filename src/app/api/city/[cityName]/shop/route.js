@@ -21,7 +21,7 @@ async function coreHandler(req, context, user = null) {
     const { cityName } = context.params;
     const formattedCityName = decodeURIComponent(cityName).toLowerCase();
 
-    const accessiblePremiums = getAccessiblePremiums(userPremium);
+    // const accessiblePremiums = getAccessiblePremiums(userPremium);
 
     // ✅ Pagination setup
     const { searchParams } = new URL(req.url);
@@ -32,7 +32,7 @@ async function coreHandler(req, context, user = null) {
     // ✅ Fetch shops
     const shops = await Shop.find({
       cityName: { $regex: new RegExp(`^${formattedCityName}$`, 'i') },
-      premium: { $in: accessiblePremiums },
+      // premium: { $in: accessiblePremiums },
     })
       .select('_id cityName flagship shops famousFor images premium')
       .skip(skip)
@@ -45,7 +45,7 @@ async function coreHandler(req, context, user = null) {
     // ✅ Pagination metadata
     const total = await Shop.countDocuments({
       cityName: { $regex: new RegExp(`^${formattedCityName}$`, 'i') },
-      premium: { $in: accessiblePremiums },
+      // premium: { $in: accessiblePremiums },
     });
 
     // ✅ Record engagement (including page=1 if user is logged in)

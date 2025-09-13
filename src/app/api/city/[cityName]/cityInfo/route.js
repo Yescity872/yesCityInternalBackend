@@ -21,7 +21,7 @@ async function coreHandler(req, context, user = null) {
     const { cityName } = await context.params;
     const formattedCityName = decodeURIComponent(cityName).toLowerCase();
 
-    const accessiblePremiums = getAccessiblePremiums(userPremium);
+    // const accessiblePremiums = getAccessiblePremiums(userPremium);
 
     // ✅ Pagination
     const { searchParams } = new URL(req.url);
@@ -32,7 +32,7 @@ async function coreHandler(req, context, user = null) {
     // ✅ Query with filters
     const cityInfos = await CityInfo.find({
       cityName: { $regex: new RegExp(`^${formattedCityName}$`, 'i') },
-      premium: { $in: accessiblePremiums },
+      // premium: { $in: accessiblePremiums },
     })
       .select('_id cityName stateOrUT alternateNames coverImage premium')
       .skip(skip)
@@ -46,7 +46,7 @@ async function coreHandler(req, context, user = null) {
     // ✅ Total count
     const total = await CityInfo.countDocuments({
       cityName: { $regex: new RegExp(`^${formattedCityName}$`, 'i') },
-      premium: { $in: accessiblePremiums },
+      // premium: { $in: accessiblePremiums },
     });
 
     // ✅ Record engagement (including page=1 if user is logged in)

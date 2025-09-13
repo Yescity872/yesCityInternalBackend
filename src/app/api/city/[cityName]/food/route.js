@@ -22,7 +22,7 @@ async function coreHandler(req, context, user = null) {
     const { cityName } = await context.params;
     const formattedCityName = decodeURIComponent(cityName).toLowerCase();
 
-    const accessiblePremiums = getAccessiblePremiums(userPremium);
+    // const accessiblePremiums = getAccessiblePremiums(userPremium);
 
     // ✅ Pagination
     const { searchParams } = new URL(req.url);
@@ -33,7 +33,7 @@ async function coreHandler(req, context, user = null) {
     // ✅ Find foods
     const foods = await Food.find({
       cityName: { $regex: new RegExp(`^${formattedCityName}$`, 'i') },
-      premium: { $in: accessiblePremiums },
+      // premium: { $in: accessiblePremiums },
     })
       .select('_id cityName flagship foodPlace vegOrNonVeg menuSpecial images premium')
       .skip(skip)
@@ -46,7 +46,7 @@ async function coreHandler(req, context, user = null) {
     // ✅ Total count
     const total = await Food.countDocuments({
       cityName: { $regex: new RegExp(`^${formattedCityName}$`, 'i') },
-      premium: { $in: accessiblePremiums },
+      // premium: { $in: accessiblePremiums },
     });
 
     // ✅ Record engagement (including page=1 if user is logged in)
