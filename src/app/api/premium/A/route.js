@@ -10,7 +10,6 @@ async function handler(req) {
 
   try {
     const userId = req.user.userId; // 👈 from auth middleware
-
     // 90 days in ms
     const ninetyDays = 90 * 24 * 60 * 60 * 1000;
 
