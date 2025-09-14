@@ -1,9 +1,13 @@
+<<<<<<< Updated upstream
 /*
    Socket server for chat real-time handling
    Run this alongside your Next backend: node src/socket-server.js
    Requires: MONGO_URI, JWT_SECRET
 */
 // Load environment variables from .env early so db modules see MONGO_URI
+=======
+
+>>>>>>> Stashed changes
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
