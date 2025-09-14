@@ -10,10 +10,12 @@ export const GET = withAuth(async (req) => {
 
     await connectToDatabase();
 
-    // Fetch user with selected fields
-    const user = await User.findById(userId).select(
-      '_id email username phone profileImage isPremium premiumStartDate premiumExpiryDate referralCode referredBy contributionPoints referralCount'
-    );
+    // Fetch user with selected fields and populate 'referredBy' username
+    const user = await User.findById(userId)
+      .select(
+        '_id email username phone profileImage isPremium premiumStartDate premiumExpiryDate referralCode referredBy contributionPoints referralCount'
+      )
+      .populate('referredBy', 'username'); // populate only the username
 
     if (!user) {
       return new Response(JSON.stringify({ error: 'User not found' }), {
@@ -34,5 +36,3 @@ export const GET = withAuth(async (req) => {
     });
   }
 });
-
-
