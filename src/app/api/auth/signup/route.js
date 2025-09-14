@@ -62,7 +62,7 @@ export async function POST(req) {
       password: hashedPassword,
       phone,
       referralCode: phone,
-      referredBy: referredByUserId,
+      referredBy: referredBy,
       profileImage,
       isPremium: 'FREE',
       contributionPoints: 2, // ✅ initialize with 0
