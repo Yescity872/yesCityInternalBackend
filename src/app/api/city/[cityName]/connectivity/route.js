@@ -21,7 +21,7 @@ async function coreHandler(req, context, user = null) {
     const { cityName } = await context.params;
     const formattedCityName = decodeURIComponent(cityName).toLowerCase();
 
-    const accessiblePremiums = getAccessiblePremiums(userPremium);
+    // const accessiblePremiums = getAccessiblePremiums(userPremium);
 
     // ✅ Pagination
     const { searchParams } = new URL(req.url);
@@ -32,7 +32,7 @@ async function coreHandler(req, context, user = null) {
     // ✅ Fetch data
     const connectivityRecords = await Connectivity.find({
       cityName: { $regex: new RegExp(`^${formattedCityName}$`, 'i') },
-      premium: { $in: accessiblePremiums },
+      // premium: { $in: accessiblePremiums },
     })
       .select('_id cityName nearestAirportStationBusStand distance premium')
       .skip(skip)
@@ -45,7 +45,7 @@ async function coreHandler(req, context, user = null) {
     // ✅ Count total
     const total = await Connectivity.countDocuments({
       cityName: { $regex: new RegExp(`^${formattedCityName}$`, 'i') },
-      premium: { $in: accessiblePremiums },
+      // premium: { $in: accessiblePremiums },
     });
 
     // ✅ Record engagement (including page=1 if user is logged in)

@@ -112,20 +112,20 @@ export async function GET(req) {
       { expiresIn: '7d' }
     );
 
-    // Step 5: Create response + set cookie and redirect to frontend
-    const redirectUrl = `${process.env.FRONTEND_URL}/`;
-    const res =  NextResponse.redirect(redirectUrl);
+    // Case: new user with phone
+    const redirectUrl = `${process.env.FRONTEND_URL}/?googleCheck=true`;
+    const res = NextResponse.redirect(redirectUrl);
     res.cookies.set({
       name: 'token',
       value: token,
       httpOnly: true,
-    secure: process.env.NODE_ENV === "production", // only secure in prod
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
       path: '/',
       maxAge: 60 * 60 * 24 * 7, // 7 days
     });
-
     return res;
+
     }
      else {
       // 🚨 Case: user doesn’t exist AND no phone provided
