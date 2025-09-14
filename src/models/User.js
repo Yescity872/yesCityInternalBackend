@@ -65,22 +65,21 @@ const userSchema = new mongoose.Schema({
     sparse: true,
   },
   referredBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User", // updated to reference User model
-    default: null,
+    type: String,
   },
-  contributionPoints: {
-    type: Number,
-    default: 0,
-  },
-  monthlyPoints: {
-    type: Number,
-    default: 0,
-  },
-  pointsMonth: {
-    type: Date,
-    default: Date.now,
-  },
+contributionPoints: {
+  type: Number,
+  default: 0,
+},
+monthlyPoints: {
+  type: Number,
+  default: 0,
+},
+pointsMonth: {
+  type: Date,
+  default: Date.now,
+},
+
   referralCount: {
     type: Number,
     default: 0,
