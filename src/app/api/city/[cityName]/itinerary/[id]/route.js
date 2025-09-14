@@ -19,8 +19,8 @@ async function handler(req, context) {
       "_id cityName reviews day1 day2 day3 premium engagement";
 
     const userId = req.user.userId;
-    const user = await User.findById(userId).select("premium");
-    const userPremium = user?.premium || "FREE";
+    const user = await User.findById(userId).select("isPremium");
+    const userPremium = user?.isPremium || "FREE";
     const accessiblePremiums = getAccessiblePremiums(userPremium);
 
     // ✅ Step 1: find the document

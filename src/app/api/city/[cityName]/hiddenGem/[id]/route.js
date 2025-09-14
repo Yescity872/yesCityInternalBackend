@@ -19,8 +19,8 @@ async function handler(req, context) {
       "_id cityName reviews hiddenGem category lat lon address locationLink openDay openTime guideAvailability establishYear fee description essential story images videos premium engagement";
 
     const userId = req.user.userId;
-    const user = await User.findById(userId).select("premium");
-    const userPremium = user?.premium || "FREE";
+    const user = await User.findById(userId).select("isPremium");
+    const userPremium = user?.isPremium || "FREE";
     const accessiblePremiums = getAccessiblePremiums(userPremium);
 
     // ✅ Step 1: find the document
