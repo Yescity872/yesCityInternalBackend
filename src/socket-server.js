@@ -1,23 +1,5 @@
-/* Simple// Resolve .env path relative to this file so running node from within `src/` still picks up project root .env
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const resolvedEnvPath = path.resolve(__dirname, '../.env');
-// load and show which .env file is used for debug
-console.log('[socket-server] resolving .env ->', resolvedEnvPath);
-dotenv.config({ path: resolvedEnvPath });
-
-import http from 'http';
-import { Server } from 'socket.io';
-import dbConnect from './lib/db.js';
-import ChatMessage from './models/ChatMessage.js';
-import City from './models/City.js';
-import User from './models/User.js';
-// Debug environment after imports
-console.log('[socket-server] MONGO_URI present?', !!process.env.MONGO_URI);
-console.log('[socket-server] JWT_SECRET present?', !!process.env.JWT_SECRET);
-console.log('[socket-server] JWT_SECRET length:', process.env.JWT_SECRET?.length || 'undefined');
-console.log('[socket-server] JWT_SECRET value:', JSON.stringify(process.env.JWT_SECRET));
-console.log('[socket-server] All env keys containing JWT:', Object.keys(process.env).filter(k => k.includes('JWT')));r for chat real-time handling
+/*
+   Socket server for chat real-time handling
    Run this alongside your Next backend: node src/socket-server.js
    Requires: MONGO_URI, JWT_SECRET
 */
@@ -33,9 +15,12 @@ const resolvedEnvPath = path.resolve(__dirname, '../.env');
 // load and show which .env file is used for debug
 console.log('[socket-server] resolving .env ->', resolvedEnvPath);
 dotenv.config({ path: resolvedEnvPath });
+
+// Debug environment after imports
 console.log('[socket-server] MONGO_URI present?', !!process.env.MONGO_URI);
 console.log('[socket-server] JWT_SECRET present?', !!process.env.JWT_SECRET);
-console.log('[socket-server] JWT_SECRET length:', process.env.JWT_SECRET?.length);
+console.log('[socket-server] JWT_SECRET length:', process.env.JWT_SECRET?.length || 'undefined');
+
 import http from 'http';
 import { Server } from 'socket.io';
 import {connectToDatabase} from './lib/db.js';
