@@ -28,7 +28,7 @@ export const GET = withAuth(async (req) => {
       // Look up user who owns that phone
       const referrer = await User.findOne({ phone: user.referredBy }).select('username');
       if (referrer) {
-        referrerInfo = { username: referrer.username };
+        referrerInfo = referrer.username ;
       }
     }
 
