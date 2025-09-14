@@ -60,7 +60,7 @@ export async function GET(req) {
     console.log('Socket connected:', socket.id, 'user:', socket.user?.userId);
 
     socket.on('joinRoom', ({ city, groupName }) => {
-      const room = ${city}::${groupName};
+      const room = `${city}::${groupName}`;
       socket.join(room);
     });
 
@@ -83,7 +83,7 @@ export async function GET(req) {
         await msg.save();
         const populated = await ChatMessage.findById(msg._id).populate('sender', 'username');
 
-        const room = ${city}::${groupName};
+        const room = `${city}::${groupName}`;
         io.to(room).emit('message', populated);
 
         ack({ success: true, data: populated });
