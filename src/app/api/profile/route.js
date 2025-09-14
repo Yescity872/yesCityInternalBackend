@@ -10,7 +10,7 @@ export const GET = withAuth(async (req) => {
 
     await connectToDatabase();
 
-    // Fetch user with selected fields
+    // Fetch user (referredBy here is phone string)
     const user = await User.findById(userId).select(
       '_id email username phone profileImage isPremium premiumStartDate premiumExpiryDate referralCode referredBy contributionPoints referralCount'
     );
@@ -22,7 +22,22 @@ export const GET = withAuth(async (req) => {
       });
     }
 
-    return new Response(JSON.stringify({ user }), {
+    let referrerInfo = null;
+
+    if (user.referredBy) {
+      // Look up user who owns that phone
+      const referrer = await User.findOne({ phone: user.referredBy }).select('username');
+      if (referrer) {
+        referrerInfo = { username: referrer.username };
+      }
+    }
+
+    const responseUser = {
+      ...user.toObject(),
+      referredBy: referrerInfo, // { username } or null
+    };
+
+    return new Response(JSON.stringify({ user: responseUser }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
@@ -34,5 +49,3 @@ export const GET = withAuth(async (req) => {
     });
   }
 });
-
-
