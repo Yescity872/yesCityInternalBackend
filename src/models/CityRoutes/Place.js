@@ -29,11 +29,11 @@ const placesToVisitSchema = new Schema({
   locationLink: { type: String, required: true },
   openDay: { type: String, required: true },
   openTime: { type: String, required: true },
-  establishYear: { type: String, required: true },
+  establishYear: { type: String },
   fee: { type: String, required: true },
   description: { type: String, required: true },
   essential: { type: String, required: true },
-  story: { type: String, required: true },
+  story: { type: String },
 
   images: [{ type: String, required: true }],
   videos: [{ type: String, required: true }],

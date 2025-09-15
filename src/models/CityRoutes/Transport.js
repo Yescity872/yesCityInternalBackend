@@ -19,8 +19,8 @@ const localTransportSchema = new Schema({
 
   reviews: [{ type: Schema.Types.ObjectId, ref: "Review" }],
 
-  from: { type: String, required: true },
-  to: { type: String, required: true },
+  from: { type: String },
+  to: { type: String },
 
   autoPrice: { type: String},
   cabPrice: { type: String },
