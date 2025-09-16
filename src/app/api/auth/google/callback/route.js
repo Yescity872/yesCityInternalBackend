@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import User from '@/models/User';
 import { connectToDatabase } from '@/lib/db';
+import { extendUserPremium } from "@/lib/extendPremium";
 
 export async function GET(req) {
   const { searchParams } = new URL(req.url);
@@ -74,7 +75,6 @@ export async function GET(req) {
     if (phone) {
 
       // ✅ Normal signup with phone (already in your code)
-      let referredByUserId = null;
       if (referredBy) {
         const refUser = await User.findOne({ referralCode: referredBy });
         if (refUser) {
