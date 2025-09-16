@@ -126,7 +126,7 @@ export async function GET(req) {
         isPhoneVerified: true,
         contributionPoints: 2,
         monthlyPoints: 2,
-        referredBy: referredByUserId,
+        referredBy,
         referralCode: newReferralCode,
         password: '',
       });
