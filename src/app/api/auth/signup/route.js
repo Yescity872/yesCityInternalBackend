@@ -36,7 +36,7 @@ export async function POST(req) {
       return NextResponse.json({ message: 'Phone number already in use' }, { status: 409 });
     }
 
-    
+
   let referredByUserId = null;
   if (referredBy) {
     const refUser = await User.findOne({ referralCode: referredBy });
@@ -93,6 +93,7 @@ export async function POST(req) {
       profileImage,
       isPremium: 'FREE',
       contributionPoints: 2, // ✅ initialize with 0
+      monthlyPoints: 2, // initialize monthly points
     });
 
 

@@ -100,6 +100,7 @@ export async function GET(req) {
         phone,
         isPhoneVerified: true,
         contributionPoints: 2,
+        monthlyPoints: 2,
         referredBy: referredByUserId,
         referralCode: newReferralCode,
         password: '',
