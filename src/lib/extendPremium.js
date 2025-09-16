@@ -2,10 +2,11 @@
 import { connectToDatabase } from "@/lib/db";
 import User from "@/models/User";
 
-export async function extendUserPremium(userId) {
+export async function extendUserPremium(referredBy) {
+  console.log("phone",referredBy);
   await connectToDatabase();
 
-  const user = await User.findById(userId);
+  const user = await User.findOne({ referralCode: referredBy });
   if (!user) throw new Error("User not found");
 
   const thirtyDays = 30 * 24 * 60 * 60 * 1000;
@@ -14,6 +15,7 @@ export async function extendUserPremium(userId) {
 
   const referralCount = user.referralCount || 0;
 
+  console.log("referralCount", referralCount);
   // 🚫 If more than 9 referrals, do nothing
   if (referralCount > 9) {
     return user;
@@ -28,17 +30,20 @@ export async function extendUserPremium(userId) {
     } else {
       throw new Error("Not enough referrals to upgrade to premium");
     }
-  } else if (user.isPremium === "A") {
-    // Already premium → extend 30 days for every 3 referrals
-    const extensionDays = Math.floor(referralCount / 3) * thirtyDays;
+} else if (user.isPremium === "A") {
+  // Extend only when referralCount is a multiple of 3 (3, 6, 9)
+  if (referralCount % 3 === 0 && referralCount <= 9) {
+    const currentExpiry = user.premiumExpiryDate
+      ? new Date(user.premiumExpiryDate)
+      : now;
 
-    if (extensionDays > 0) {
-      const currentExpiry = user.premiumExpiryDate ? new Date(user.premiumExpiryDate) : now;
-      user.premiumExpiryDate = new Date(
-        currentExpiry > now ? currentExpiry.getTime() + extensionDays : now.getTime() + extensionDays
-      );
-    }
+    user.premiumExpiryDate = new Date(
+      currentExpiry > now
+        ? currentExpiry.getTime() + thirtyDays
+        : now.getTime() + thirtyDays
+    );
   }
+}
 
   await user.save();
   return user;

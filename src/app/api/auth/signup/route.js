@@ -36,21 +36,23 @@ export async function POST(req) {
       return NextResponse.json({ message: 'Phone number already in use' }, { status: 409 });
     }
 
-    let referredByUserId = null;
-    if (referredBy) {
-      const refUser = await User.findOne({ referralCode: referredBy });
-      if (refUser) {
-        referredByUserId = refUser._id;
-        refUser.referralCount += 1;
-        refUser.contributionPoints += 5;
-        await refUser.save();
-        try {
-          await extendUserPremium(refUser._id);
-        } catch (err) {
-          console.error("Failed to extend referrer premium:", err);
-        }
-      }
+let referredByUserId = null;
+if (referredBy) {
+  const refUser = await User.findOne({ referralCode: referredBy });
+  if (refUser) {
+    referredByUserId = refUser._id;
+    refUser.referralCount += 1;
+    refUser.contributionPoints += 5;
+    await refUser.save();
+    console.log(referredBy);
+    try {
+      await extendUserPremium(referredBy); // ✅ send referralCode directly
+    } catch (err) {
+      console.error("Failed to extend referrer premium:", err);
     }
+  }
+}
+
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12);
