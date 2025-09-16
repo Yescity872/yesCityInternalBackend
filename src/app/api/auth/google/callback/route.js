@@ -10,6 +10,14 @@ export async function GET(req) {
   const code = searchParams.get('code');
   const state = searchParams.get('state');
 
+  if (error) {
+    console.error('Google OAuth Error:', error);
+    // Redirect the user back to your frontend's login page with a status message
+    const redirectUrl = `${process.env.FRONTEND_URL}/login?status=cancelled`;
+    return NextResponse.redirect(redirectUrl);
+  }
+
+  
   if (!code) {
     return NextResponse.json({ message: 'Authorization code missing' }, { status: 400 });
   }
