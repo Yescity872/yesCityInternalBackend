@@ -151,6 +151,7 @@ export const POST = withAuth(async (req) => {
     if(! user.firstProfile){
       user.firstProfile = true;
       user.contributionPoints += 3;
+      user.monthlyPoints += 3;
     } 
     
     await user.save();

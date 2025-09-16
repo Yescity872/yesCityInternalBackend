@@ -74,21 +74,46 @@ export async function GET(req) {
     if (phone) {
 
       // ✅ Normal signup with phone (already in your code)
-        let referredByUserId = null;
-        if (referredBy) {
-          const refUser = await User.findOne({ referralCode: referredBy });
-          if (refUser) {
-            referredByUserId = refUser._id;
-            refUser.referralCount += 1;
-            refUser.contributionPoints += 5;
-            await refUser.save();
-            try {
-              await extendUserPremium(refUser._id);
-            } catch (err) {
-              console.error("Failed to extend referrer premium:", err);
-            }
+      let referredByUserId = null;
+      if (referredBy) {
+        const refUser = await User.findOne({ referralCode: referredBy });
+        if (refUser) {
+          referredByUserId = refUser._id;
+          refUser.referralCount += 1;
+
+          // --- Apply monthly contribution points cap (90) ---
+          const now = new Date();
+          const currentMonth = now.getMonth();
+          const currentYear = now.getFullYear();
+          const storedMonth = refUser.pointsMonth?.getMonth();
+          const storedYear = refUser.pointsMonth?.getFullYear();
+
+          // Reset if new month
+          if (storedMonth !== currentMonth || storedYear !== currentYear) {
+            refUser.monthlyPoints = 0;
+            refUser.pointsMonth = now;
+          }
+
+          // Add points with cap
+          if (refUser.monthlyPoints < 90) {
+            const available = 90 - refUser.monthlyPoints;
+            const addedPoints = Math.min(5, available);
+
+            refUser.monthlyPoints += addedPoints;
+            refUser.contributionPoints += addedPoints;
+          }
+          // --- end cap logic ---
+
+          await refUser.save();
+          console.log(referredBy);
+
+          try {
+            await extendUserPremium(referredBy); // ✅ still send referralCode directly
+          } catch (err) {
+            console.error("Failed to extend referrer premium:", err);
           }
         }
+      }
 
       const newReferralCode = phone;
 
