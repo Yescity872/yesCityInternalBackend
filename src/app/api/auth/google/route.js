@@ -38,6 +38,7 @@ export async function GET(req) {
   // ✅ Debugging logs
   console.log("🔍 redirect_uri being sent:", REDIRECT_URI);
   console.log("🔍 Full Google OAuth URL:", oauthURL.toString());
+  console.log("#########",referredBy);
 
   return NextResponse.redirect(oauthURL.toString());
 }
