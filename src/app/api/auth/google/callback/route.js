@@ -78,7 +78,7 @@ export async function GET(req) {
       if (referredBy) {
         const refUser = await User.findOne({ referralCode: referredBy });
         if (refUser) {
-          referredByUserId = refUser._id;
+          // referredByUserId = refUser._id;
           refUser.referralCount += 1;
 
           // --- Apply monthly contribution points cap (90) ---
