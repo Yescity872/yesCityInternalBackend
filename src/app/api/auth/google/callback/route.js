@@ -3,7 +3,6 @@ import { NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import User from '@/models/User';
 import { connectToDatabase } from '@/lib/db';
-import { extendUserPremium } from '@/lib/extendPremium';
 
 export async function GET(req) {
   const { searchParams } = new URL(req.url);
@@ -16,14 +15,10 @@ export async function GET(req) {
 
   // Retrieve phone and referredBy from state (sent back by Google)
   let phone, referredBy;
-  console.log(referredBy);
-  
   try {
     const parsedState = JSON.parse(state || '{}');
     phone = parsedState.phone;
     referredBy = parsedState.referredBy;
-    console.log(2,referredBy);
-    
   } catch (error) {
     console.error('Error parsing state:', error);
     phone = null;
@@ -77,26 +72,23 @@ export async function GET(req) {
 
    if (!user) {
     if (phone) {
-      console.log("phone: ---",  phone);
+
       // ✅ Normal signup with phone (already in your code)
-      let referredByUserId = null;
-      if (referredBy) {
-        const refUser = await User.findOne({ referralCode: referredBy });
-        console.log(3, referredBy);
-        
-        if (refUser) {
-          referredByUserId = refUser._id;
-          refUser.referralCount += 1;
-          refUser.contributionPoints += 5;
-          await refUser.save();
-          console.log("referredBy",referredBy);
-          try {
-            await extendUserPremium(referredBy); // ✅ send referralCode directly
-          } catch (err) {
-            console.error("Failed to extend referrer premium:", err);
+        let referredByUserId = null;
+        if (referredBy) {
+          const refUser = await User.findOne({ referralCode: referredBy });
+          if (refUser) {
+            referredByUserId = refUser._id;
+            refUser.referralCount += 1;
+            refUser.contributionPoints += 5;
+            await refUser.save();
+            try {
+              await extendUserPremium(refUser._id);
+            } catch (err) {
+              console.error("Failed to extend referrer premium:", err);
+            }
           }
         }
-      }
 
       const newReferralCode = phone;
 
@@ -108,7 +100,7 @@ export async function GET(req) {
         phone,
         isPhoneVerified: true,
         contributionPoints: 2,
-        referredBy: "random",
+        referredBy: referredByUserId,
         referralCode: newReferralCode,
         password: '',
       });
