@@ -14,6 +14,11 @@ export async function extendUserPremium(userId) {
 
   const referralCount = user.referralCount || 0;
 
+  // 🚫 If more than 9 referrals, do nothing
+  if (referralCount > 9) {
+    return user;
+  }
+
   if (user.isPremium === "FREE") {
     // FREE → A only if at least 3 referrals
     if (referralCount >= 3) {
