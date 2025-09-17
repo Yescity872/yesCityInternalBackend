@@ -130,7 +130,7 @@ export async function POST(req) {
   sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
       sameSite: 'none',
       path: '/',
-      maxAge: 60 * 60 * 24 * 7, // 7 days
+      maxAge: 60 * 60 * 24 * 7, // 7 da
     });
 
     return response;
