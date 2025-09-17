@@ -109,6 +109,7 @@ export async function POST(req) {
       {
         success: true,
         message: 'User registered and logged in successfully',
+        token,
         user: {
           id: user._id,
           username: user.username,
