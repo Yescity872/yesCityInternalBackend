@@ -1,4 +1,4 @@
-// api/chat/groups/route.js
+// api/chat/groups/route.js - FIXED VERSION
 
 import { connectToDatabase } from '@/lib/db';
 import ChatGroup from '@/models/ChatGroup';
@@ -71,9 +71,6 @@ export const GET = withAuth(async (req) => {
     });
   }
 });
-
-
-
 
 // POST - Create group, join group, or leave group
 export const POST = withAuth(async (req) => {
@@ -149,14 +146,14 @@ export const POST = withAuth(async (req) => {
         });
       }
 
-      // Check if already a member
-      const existingMember = await GroupMember.findOne({
+      // Check if already an active member
+      const existingActiveMember = await GroupMember.findOne({
         groupId,
         userId,
         isActive: true
       });
 
-      if (existingMember) {
+      if (existingActiveMember) {
         return new Response(JSON.stringify({ error: 'Already a member of this group' }), {
           status: 400,
           headers: { 'Content-Type': 'application/json' },
@@ -165,15 +162,28 @@ export const POST = withAuth(async (req) => {
 
       const user = await User.findById(userId).select('username');
       
-      // Add as member
-      const newMember = new GroupMember({
+      // 🔧 FIX: Check if there's an inactive membership to reactivate
+      const existingInactiveMember = await GroupMember.findOne({
         groupId,
         userId,
-        username: user.username,
-        role: 'member'
+        isActive: false
       });
 
-      await newMember.save();
+      if (existingInactiveMember) {
+        // Reactivate existing membership
+        existingInactiveMember.isActive = true;
+        existingInactiveMember.joinedAt = new Date(); // Update join time
+        await existingInactiveMember.save();
+      } else {
+        // Create new membership
+        const newMember = new GroupMember({
+          groupId,
+          userId,
+          username: user.username,
+          role: 'member'
+        });
+        await newMember.save();
+      }
 
       // Update group member count
       await ChatGroup.findByIdAndUpdate(groupId, {
@@ -206,6 +216,7 @@ export const POST = withAuth(async (req) => {
 
       // Deactivate membership
       member.isActive = false;
+      member.leftAt = new Date(); // Optional: track when they left
       await member.save();
 
       // Update group member count
@@ -237,7 +248,3 @@ export const POST = withAuth(async (req) => {
     });
   }
 });
-
-
-
-
