@@ -1,3 +1,5 @@
+// api/chat/messages/route.js
+
 import { connectToDatabase } from '@/lib/db';
 import JoinRequest from '@/models/JoinRequest';
 import GroupMember from '@/models/GroupMember';

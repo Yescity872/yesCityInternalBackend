@@ -1,3 +1,5 @@
+// api/chat/groups/route.js
+
 import { connectToDatabase } from '@/lib/db';
 import ChatGroup from '@/models/ChatGroup';
 import GroupMember from '@/models/GroupMember';
@@ -235,3 +237,7 @@ export const POST = withAuth(async (req) => {
     });
   }
 });
+
+
+
+

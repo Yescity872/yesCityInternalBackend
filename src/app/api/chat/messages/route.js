@@ -1,3 +1,4 @@
+// /api/chat/messages/route.js
 import { connectToDatabase } from '@/lib/db';
 import ChatMessage from '@/models/ChatMessage';
 import GroupMember from '@/models/GroupMember';
@@ -86,8 +87,9 @@ export const GET = withAuth(async (req) => {
 
 
 // POST - Send message or upload media
-// POST - Send message or upload media
 import { pusher } from "@/lib/pusher"; // ✅ your pusher client
+
+// /api/chat/messages/route.js - Updated POST handler
 
 export const POST = withAuth(async (req) => {
   try {
@@ -103,69 +105,30 @@ export const POST = withAuth(async (req) => {
       });
     }
 
-    let messageData;
-    let groupId;
+    // Parse JSON body (now we expect JSON instead of FormData)
+    const body = await req.json();
+    const { groupId, messageType, content, mediaUrl, mediaFileName, mediaSize, mediaType } = body;
 
-    // Detect content type
-    const contentType = req.headers.get("content-type");
+    if (!groupId) {
+      return new Response(JSON.stringify({ error: "Group ID is required" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
 
-    if (contentType?.includes("multipart/form-data")) {
-      // Handle file upload
-      const formData = await req.formData();
-      const file = formData.get("file");
-      const messageType = formData.get("messageType");
-      groupId = formData.get("groupId");
+    // Validate message content
+    if (messageType === 'text' && !content?.trim()) {
+      return new Response(JSON.stringify({ error: "Message content cannot be empty" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
 
-      if (!file || !messageType || !groupId) {
-        return new Response(
-          JSON.stringify({ error: "Missing required fields for file upload" }),
-          { status: 400, headers: { "Content-Type": "application/json" } }
-        );
-      }
-
-      // Validate file size
-      const maxSize =
-        messageType === "image" ? 5 * 1024 * 1024 : 50 * 1024 * 1024;
-      if (file.size > maxSize) {
-        return new Response(
-          JSON.stringify({
-            error: `File too large. Max size: ${
-              messageType === "image" ? "5MB" : "50MB"
-            }`,
-          }),
-          { status: 400, headers: { "Content-Type": "application/json" } }
-        );
-      }
-
-      // Simulated file upload path
-      const fileName = `${Date.now()}-${file.name}`;
-      const mediaUrl = `/uploads/${fileName}`;
-
-      messageData = {
-        groupId,
-        messageType,
-        mediaUrl,
-        mediaFileName: file.name,
-        mediaSize: file.size,
-        mediaType: file.type,
-      };
-    } else {
-      // Handle text message
-      const body = await req.json();
-      groupId = body.groupId;
-
-      messageData = {
-        groupId,
-        messageType: body.messageType || "text",
-        content: body.content,
-      };
-
-      if (!messageData.content?.trim()) {
-        return new Response(
-          JSON.stringify({ error: "Message content cannot be empty" }),
-          { status: 400, headers: { "Content-Type": "application/json" } }
-        );
-      }
+    if ((messageType === 'image' || messageType === 'video') && !mediaUrl) {
+      return new Response(JSON.stringify({ error: "Media URL is required for media messages" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
     // Ensure user is a member of the group
@@ -174,19 +137,31 @@ export const POST = withAuth(async (req) => {
       userId,
       isActive: true,
     });
+    
     if (!membership) {
-      return new Response(
-        JSON.stringify({ error: "You must be a member to send messages" }),
-        { status: 403, headers: { "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "You must be a member to send messages" }), {
+        status: 403,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
-    // Create and save message
-    const newMessage = new ChatMessage({
-      ...messageData,
+    // Prepare message data
+    const messageData = {
+      groupId,
       userId,
       username: user.username,
-    });
+      messageType: messageType || 'text',
+      ...(messageType === 'text' && { content }),
+      ...(messageType !== 'text' && {
+        mediaUrl,
+        mediaFileName,
+        mediaSize,
+        mediaType,
+      }),
+    };
+
+    // Create and save message
+    const newMessage = new ChatMessage(messageData);
     await newMessage.save();
 
     // Update group last activity
@@ -194,36 +169,38 @@ export const POST = withAuth(async (req) => {
       lastActivity: new Date(),
     });
 
-    // ✅ Trigger realtime event but don't crash if fails
+    // Trigger realtime event but don't crash if fails
     try {
       await pusher.trigger(`group-${groupId}`, "new-message", {
-        id: newMessage._id,
+        _id: newMessage._id,
         groupId,
         username: user.username,
         content: newMessage.content || null,
         messageType: newMessage.messageType,
         mediaUrl: newMessage.mediaUrl || null,
+        mediaFileName: newMessage.mediaFileName || null,
         createdAt: newMessage.createdAt,
       });
     } catch (pusherErr) {
       console.error("Pusher error:", pusherErr);
-      // Don’t throw → just log
+      // Don't throw → just log
     }
 
     // Always return success if DB save worked
-    return new Response(
-      JSON.stringify({
-        success: true,
-        message: newMessage,
-        messageText: "Message sent successfully",
-      }),
-      { status: 201, headers: { "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({
+      success: true,
+      message: newMessage,
+      messageText: "Message sent successfully",
+    }), {
+      status: 201,
+      headers: { "Content-Type": "application/json" }
+    });
+
   } catch (error) {
     console.error("Error sending message:", error);
-    return new Response(
-      JSON.stringify({ error: "Internal server error" }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 });
