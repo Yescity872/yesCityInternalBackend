@@ -5,6 +5,7 @@ import User from '@/models/User';
 import { connectToDatabase } from '@/lib/db';
 import { extendUserPremium } from "@/lib/extendPremium";
 
+
 export async function GET(req) {
   const { searchParams } = new URL(req.url);
   const code = searchParams.get('code');
