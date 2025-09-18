@@ -7,7 +7,7 @@ import JoinRequest from '@/models/JoinRequest';
 import User from '@/models/User';
 import { withAuth } from '@/middleware/auth';
 
-// GET - Fetch groups for a city with user membership status
+// GET - Fetch groups for a city with user membership sta
 export const GET = withAuth(async (req) => {
   try {
     const userId = req.user.userId;
