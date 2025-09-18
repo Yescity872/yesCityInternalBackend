@@ -29,7 +29,7 @@ export function withAuth(handler) {
       }
     }
 
-    console.log("Token:", token);
+    console.log("Token: ", token);
 
     if (!token) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
