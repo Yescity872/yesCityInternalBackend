@@ -17,10 +17,19 @@ export function verifyToken(token) {
 
 export function withAuth(handler) {
   return async (req, context) => {
-    // ✅ await cookies()
+    // ✅ Check cookies
     const cookieStore = await cookies();
-    const token = cookieStore.get("token")?.value;
-    console.log(token);
+    let token = cookieStore.get("token")?.value;
+
+    // ✅ If not in cookies, check headers (from localStorage on frontend)
+    if (!token) {
+      const authHeader = req.headers.get("authorization");
+      if (authHeader && authHeader.startsWith("Bearer ")) {
+        token = authHeader.split(" ")[1];
+      }
+    }
+
+    console.log("Token: ", token);
 
     if (!token) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
@@ -62,16 +71,22 @@ export function withAuth(handler) {
       premiumExpiryDate: user.premiumExpiryDate,
     };
 
-    
     return handler(req, context);
   };
 }
 
-
-export async function getUserFromCookies() {
+export async function getUserFromCookies(req) {
   // ✅ Get token from cookies
   const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
+  let token = cookieStore.get("token")?.value;
+
+  // ✅ If not in cookies, check headers (localStorage → frontend → request)
+  if (!token && req?.headers) {
+    const authHeader = req.headers.get("authorization");
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      token = authHeader.split(" ")[1];
+    }
+  }
 
   if (!token) return null;
 

@@ -5,6 +5,7 @@ import User from '@/models/User';
 import { connectToDatabase } from '@/lib/db';
 import { extendUserPremium } from "@/lib/extendPremium";
 
+
 export async function GET(req) {
   const { searchParams } = new URL(req.url);
   const code = searchParams.get('code');
@@ -147,8 +148,8 @@ export async function GET(req) {
     );
 
     // Case: new user with phone
-    const redirectUrl = `${process.env.FRONTEND_URL}/?googleCheck=true`;
-    const res = NextResponse.redirect(redirectUrl);
+const redirectUrl = `${process.env.FRONTEND_URL}/?googleCheck=true&token=${token}`;
+    const res = NextResponse.redirect(redirectUrl);       // or NextResponse.redirect(redirectUrl, headers: {"Set-Cookie" : }
     res.cookies.set({
       name: 'token',
       value: token,
@@ -176,7 +177,7 @@ export async function GET(req) {
     );
 
     // Step 5: Create response + set cookie and redirect to frontend
-    const redirectUrl = `${process.env.FRONTEND_URL}/`;
+    const redirectUrl = `${process.env.FRONTEND_URL}/?token=${token}`;
     const res =  NextResponse.redirect(redirectUrl);
     res.cookies.set({
       name: 'token',
