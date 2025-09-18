@@ -86,12 +86,12 @@ export const GET = withAuth(async (req) => {
 
 
 // POST - Send message or upload media
-import { pusher } from "@/lib/pusher"; // ✅ add your pusher client
+// POST - Send message or upload media
+import { pusher } from "@/lib/pusher"; // ✅ your pusher client
 
 export const POST = withAuth(async (req) => {
   try {
     const userId = req.user.userId;
-
     await connectToDatabase();
 
     // Get user info
@@ -106,7 +106,7 @@ export const POST = withAuth(async (req) => {
     let messageData;
     let groupId;
 
-    // Handle multipart form data (file upload) or JSON (text message)
+    // Detect content type
     const contentType = req.headers.get("content-type");
 
     if (contentType?.includes("multipart/form-data")) {
@@ -123,7 +123,7 @@ export const POST = withAuth(async (req) => {
         );
       }
 
-      // Validate file type and size
+      // Validate file size
       const maxSize =
         messageType === "image" ? 5 * 1024 * 1024 : 50 * 1024 * 1024;
       if (file.size > maxSize) {
@@ -137,7 +137,7 @@ export const POST = withAuth(async (req) => {
         );
       }
 
-      // Simulate file upload (replace with S3/Cloudinary later)
+      // Simulated file upload path
       const fileName = `${Date.now()}-${file.name}`;
       const mediaUrl = `/uploads/${fileName}`;
 
@@ -153,8 +153,9 @@ export const POST = withAuth(async (req) => {
       // Handle text message
       const body = await req.json();
       groupId = body.groupId;
+
       messageData = {
-        groupId: body.groupId,
+        groupId,
         messageType: body.messageType || "text",
         content: body.content,
       };
@@ -167,13 +168,12 @@ export const POST = withAuth(async (req) => {
       }
     }
 
-    // Check if user is a member of the group
+    // Ensure user is a member of the group
     const membership = await GroupMember.findOne({
       groupId,
       userId,
       isActive: true,
     });
-
     if (!membership) {
       return new Response(
         JSON.stringify({ error: "You must be a member to send messages" }),
@@ -181,13 +181,12 @@ export const POST = withAuth(async (req) => {
       );
     }
 
-    // Create message
+    // Create and save message
     const newMessage = new ChatMessage({
       ...messageData,
       userId,
       username: user.username,
     });
-
     await newMessage.save();
 
     // Update group last activity
@@ -195,17 +194,23 @@ export const POST = withAuth(async (req) => {
       lastActivity: new Date(),
     });
 
-    // ✅ Trigger realtime event
-    await pusher.trigger(`group-${groupId}`, "new-message", {
-      id: newMessage._id,
-      groupId,
-      sender: user.username,
-      content: newMessage.content || null,
-      messageType: newMessage.messageType,
-      mediaUrl: newMessage.mediaUrl || null,
-      createdAt: newMessage.createdAt,
-    });
+    // ✅ Trigger realtime event but don't crash if fails
+    try {
+      await pusher.trigger(`group-${groupId}`, "new-message", {
+        id: newMessage._id,
+        groupId,
+        sender: user.username,
+        content: newMessage.content || null,
+        messageType: newMessage.messageType,
+        mediaUrl: newMessage.mediaUrl || null,
+        createdAt: newMessage.createdAt,
+      });
+    } catch (pusherErr) {
+      console.error("Pusher error:", pusherErr);
+      // Don’t throw → just log
+    }
 
+    // Always return success if DB save worked
     return new Response(
       JSON.stringify({
         success: true,
