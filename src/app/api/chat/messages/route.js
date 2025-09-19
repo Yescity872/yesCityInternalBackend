@@ -174,6 +174,7 @@ export const POST = withAuth(async (req) => {
       await pusher.trigger(`group-${groupId}`, "new-message", {
         _id: newMessage._id,
         groupId,
+        userId,
         username: user.username,
         content: newMessage.content || null,
         messageType: newMessage.messageType,
