@@ -73,6 +73,14 @@ export const GET = withAuth(async (req) => {
 });
 
 // POST - Create group, join group, or leave group
+// api/chat/groups/route.js
+
+import { connectToDatabase } from '@/lib/db';
+import ChatGroup from '@/models/ChatGroup';
+import GroupMember from '@/models/GroupMember';
+import User from '@/models/User';
+import { withAuth } from '@/middleware/auth';
+
 export const POST = withAuth(async (req) => {
   try {
     const userId = req.user.userId;
@@ -92,7 +100,9 @@ export const POST = withAuth(async (req) => {
       }
 
       if (user.contributionPoints < 200) {
-        return new Response(JSON.stringify({ error: 'Insufficient contribution points. Need 200 points to create a group.' }), {
+        return new Response(JSON.stringify({
+          error: 'Insufficient contribution points. Need 200 points to create a group.'
+        }), {
           status: 400,
           headers: { 'Content-Type': 'application/json' },
         });
@@ -113,17 +123,17 @@ export const POST = withAuth(async (req) => {
       // Add creator as admin member
       const adminMember = new GroupMember({
         groupId: newGroup._id,
-        userId: userId,
+        userId,
         username: user.username,
         role: 'admin'
       });
 
       await adminMember.save();
 
-      return new Response(JSON.stringify({ 
-        success: true, 
+      return new Response(JSON.stringify({
+        success: true,
         group: newGroup,
-        message: 'Group created successfully' 
+        message: 'Group created successfully'
       }), {
         status: 201,
         headers: { 'Content-Type': 'application/json' },
@@ -149,8 +159,7 @@ export const POST = withAuth(async (req) => {
       // Check if already an active member
       const existingActiveMember = await GroupMember.findOne({
         groupId,
-        userId,
-        isActive: true
+        userId
       });
 
       if (existingActiveMember) {
@@ -161,29 +170,15 @@ export const POST = withAuth(async (req) => {
       }
 
       const user = await User.findById(userId).select('username');
-      
-      // 🔧 FIX: Check if there's an inactive membership to reactivate
-      const existingInactiveMember = await GroupMember.findOne({
+
+      // Create new membership
+      const newMember = new GroupMember({
         groupId,
         userId,
-        isActive: false
+        username: user.username,
+        role: 'member'
       });
-
-      if (existingInactiveMember) {
-        // Reactivate existing membership
-        existingInactiveMember.isActive = true;
-        existingInactiveMember.joinedAt = new Date(); // Update join time
-        await existingInactiveMember.save();
-      } else {
-        // Create new membership
-        const newMember = new GroupMember({
-          groupId,
-          userId,
-          username: user.username,
-          role: 'member'
-        });
-        await newMember.save();
-      }
+      await newMember.save();
 
       // Update group member count
       await ChatGroup.findByIdAndUpdate(groupId, {
@@ -191,20 +186,19 @@ export const POST = withAuth(async (req) => {
         lastActivity: new Date()
       });
 
-      return new Response(JSON.stringify({ 
+      return new Response(JSON.stringify({
         success: true,
-        message: 'Successfully joined group' 
+        message: 'Successfully joined group'
       }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       });
 
     } else if (action === 'leave') {
-      // Leave group
+      // Leave group (remove from collection)
       const member = await GroupMember.findOne({
         groupId,
-        userId,
-        isActive: true
+        userId
       });
 
       if (!member) {
@@ -214,10 +208,8 @@ export const POST = withAuth(async (req) => {
         });
       }
 
-      // Deactivate membership
-      member.isActive = false;
-      member.leftAt = new Date(); // Optional: track when they left
-      await member.save();
+      // ❌ Remove membership entirely
+      await GroupMember.deleteOne({ _id: member._id });
 
       // Update group member count
       await ChatGroup.findByIdAndUpdate(groupId, {
@@ -225,9 +217,9 @@ export const POST = withAuth(async (req) => {
         lastActivity: new Date()
       });
 
-      return new Response(JSON.stringify({ 
+      return new Response(JSON.stringify({
         success: true,
-        message: 'Successfully left group' 
+        message: 'Successfully left group'
       }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
