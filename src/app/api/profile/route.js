@@ -1,67 +1,51 @@
-// scripts/createGroup.js
+// app/api/profile/route.js
 
-import mongoose from "mongoose";
-import dotenv from "dotenv";
-import { connectToDatabase } from "@/lib/db.js"; // adjust if path differs
-import ChatGroup from "@/models/ChatGroup.js";
-import GroupMember from "@/models/GroupMember.js";
-import User from "@/models/User.js";
+import { connectToDatabase } from '@/lib/db';
+import User from '@/models/User';
+import { withAuth } from '@/middleware/auth';
 
-dotenv.config();
-
-async function createGroup({ name, description, cityId, isPrivate, adminId }) {
+export const GET = withAuth(async (req) => {
   try {
-    // connect to DB
-    await connectToDatabase();
-    console.log("✅ Connected to MongoDB");
+    const userId = req.user.userId; // from withAuth
 
-    // check admin user exists
-    const adminUser = await User.findById(adminId).select("username");
-    if (!adminUser) {
-      console.error("❌ Admin user not found");
-      return;
+    await connectToDatabase();
+
+    // Fetch user (referredBy here is phone string)
+    const user = await User.findById(userId).select(
+      '_id email username phone profileImage isPremium premiumStartDate premiumExpiryDate referralCode referredBy contributionPoints referralCount'
+    );
+
+    if (!user) {
+      return new Response(JSON.stringify({ error: 'User not found' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
-    // create group
-    const newGroup = new ChatGroup({
-      name,
-      description,
-      cityId,
-      isPrivate: !!isPrivate,
-      adminId,
-      memberCount: 1, // admin counts as first member
-    });
-    await newGroup.save();
+    let referrerInfo = null;
 
-    // create membership for admin
-    const adminMember = new GroupMember({
-      groupId: newGroup._id,
-      userId: adminId,
-      username: adminUser.username,
-      role: "admin",
-    });
-    await adminMember.save();
+    if (user.referredBy) {
+      // Look up user who owns that phone
+      const referrer = await User.findOne({ phone: user.referredBy }).select('username');
+      if (referrer) {
+        referrerInfo = referrer.username ;
+      }
+    }
 
-    console.log("🎉 Group created successfully:");
-    console.log({
-      id: newGroup._id.toString(),
-      name: newGroup.name,
-      cityId: newGroup.cityId,
-      admin: adminUser.username,
+    const responseUser = {
+      ...user.toObject(),
+      referredBy: referrerInfo, // { username } or null
+    };
+
+    return new Response(JSON.stringify({ user: responseUser }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
     });
-  } catch (err) {
-    console.error("❌ Error creating group:", err);
-  } finally {
-    await mongoose.disconnect();
-    console.log("🔌 Disconnected from MongoDB");
+  } catch (error) {
+    console.error('Error fetching user:', error);
+    return new Response(JSON.stringify({ error: 'Failed to fetch user' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
-}
-
-// Example usage
-createGroup({
-  name: "Tech Founders Hub",
-  description: "Meet other startup founders and share ideas",
-  cityId: "delhi001", // city id of your choice
-  isPrivate: false,
-  adminId: "6512abc1234567def8901234", // replace with real user ID
 });
