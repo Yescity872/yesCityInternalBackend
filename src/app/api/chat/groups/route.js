@@ -75,8 +75,6 @@ export const GET = withAuth(async (req) => {
 // POST - Create group, join group, or leave group
 // api/chat/groups/route.js
 
-
-
 export const POST = withAuth(async (req) => {
   try {
     const userId = req.user.userId;
