@@ -205,3 +205,69 @@ export const POST = withAuth(async (req) => {
     });
   }
 });
+
+
+
+
+// DELETE - Permanently delete user's own message
+export const DELETE = withAuth(async (req) => {
+  try {
+    const userId = req.user.userId;
+    await connectToDatabase();
+
+    const url = new URL(req.url);
+    const messageId = url.searchParams.get("messageId");
+
+    if (!messageId) {
+      return new Response(JSON.stringify({ error: "Message ID is required" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // Find message
+    const message = await ChatMessage.findById(messageId);
+    if (!message) {
+      return new Response(JSON.stringify({ error: "Message not found" }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // ✅ Ensure only the owner can delete
+    if (message.userId.toString() !== userId.toString()) {
+      return new Response(JSON.stringify({ error: "You can only delete your own messages" }), {
+        status: 403,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // Permanently delete
+    await ChatMessage.findByIdAndDelete(messageId);
+
+    // Trigger realtime event for deletion
+    try {
+      await pusher.trigger(`group-${message.groupId}`, "delete-message", {
+        messageId,
+      });
+    } catch (pusherErr) {
+      console.error("Pusher error (delete):", pusherErr);
+    }
+
+    return new Response(JSON.stringify({
+      success: true,
+      message: "Message deleted successfully",
+      messageId,
+    }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+
+  } catch (error) {
+    console.error("Error deleting message:", error);
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+});
