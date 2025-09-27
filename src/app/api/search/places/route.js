@@ -219,12 +219,37 @@ export async function GET(request) {
     }
 
     let allResults = [];
-    const resultsPerStage = Math.ceil(limit / 3); // Distribute limit across stages
 
-    // Stage 1: Exact prefix matches
-    for (const config of searchConfigs) {
-      const exactResults = await searchInCollection(config, query, 'exact', resultsPerStage);
-      allResults.push(...exactResults);
+    // Stage 0: City matches FIRST (highest priority)
+    const cityMatches = await City.find({
+      cityName: { $regex: query, $options: 'i' }
+    })
+    .select('cityName')
+    .limit(5); // Limit cities to top 5
+
+    const cityResults = cityMatches.map(city => ({
+      _id: city._id,
+      cityName: city.cityName,
+      placeName: null,
+      cityId: city._id,
+      placeType: 'city',
+      matchType: city.cityName.toLowerCase().startsWith(query.toLowerCase()) ? 'exact' : 'contains',
+      score: city.cityName.toLowerCase().startsWith(query.toLowerCase()) ? 1.0 : 0.8,
+      displayText: city.cityName,
+      type: 'city'
+    }));
+
+    allResults.push(...cityResults);
+
+    // Stage 1: Exact prefix matches for places
+    if (allResults.length < limit) {
+      const remainingLimit = limit - allResults.length;
+      const exactLimit = Math.ceil(remainingLimit / 2);
+      
+      for (const config of searchConfigs) {
+        const exactResults = await searchInCollection(config, query, 'exact', exactLimit);
+        allResults.push(...exactResults);
+      }
     }
 
     // Stage 2: Contains matches (if we need more results)
@@ -261,49 +286,34 @@ export async function GET(request) {
       allResults.push(...uniqueFuzzyResults);
     }
 
-    // Stage 4: City matches (if we still need results)
-    if (allResults.length < limit) {
-      const remainingLimit = limit - allResults.length;
-      
-      const cityMatches = await City.find({
-        cityName: { $regex: query, $options: 'i' }
-      })
-      .select('cityName')
-      .limit(remainingLimit);
-
-      const cityResults = cityMatches.map(city => ({
-        _id: city._id,
-        cityName: city.cityName,
-        placeName: null,
-        cityId: city._id,
-        placeType: 'city',
-        matchType: city.cityName.toLowerCase().startsWith(query.toLowerCase()) ? 'exact' : 'contains',
-        score: city.cityName.toLowerCase().startsWith(query.toLowerCase()) ? 1.0 : 0.8,
-        displayText: city.cityName,
-        type: 'city'
-      }));
-
-      allResults.push(...cityResults);
-    }
+    // Helper function for sorting
+    const getSortPriority = (item) => {
+      if (item.type === 'city') {
+        return item.matchType === 'exact' ? 1 : 2; // Cities: exact=1, contains=2
+      }
+      // Places: exact=3, contains=4, fuzzy=5
+      switch (item.matchType) {
+        case 'exact': return 3;
+        case 'contains': return 4;
+        case 'fuzzy': return 5;
+        default: return 6;
+      }
+    };
 
     // Final sorting and formatting
     const finalResults = allResults
       .sort((a, b) => {
-        // Exact matches first
-        if (a.matchType === 'exact' && b.matchType !== 'exact') return -1;
-        if (b.matchType === 'exact' && a.matchType !== 'exact') return 1;
+        // Sort by priority first (cities before places, exact before contains)
+        const aPriority = getSortPriority(a);
+        const bPriority = getSortPriority(b);
         
-        // Then by score if available
+        if (aPriority !== bPriority) return aPriority - bPriority;
+        
+        // Then by score within same priority
         const aScore = a.score || getScoreByMatchType(a.matchType);
         const bScore = b.score || getScoreByMatchType(b.matchType);
         
-        if (bScore !== aScore) return bScore - aScore;
-        
-        // Places before cities for same score
-        if (a.type === 'place' && b.type === 'city') return -1;
-        if (b.type === 'place' && a.type === 'city') return 1;
-        
-        return 0;
+        return bScore - aScore;
       })
       .slice(0, limit)
       .map(result => ({
