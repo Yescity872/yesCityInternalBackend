@@ -2,19 +2,40 @@ import nodemailer from 'nodemailer';
 
 export async function POST(request) {
     try {
-        const { name, email, messageType, message } = await request.json();
-        
-        // Create transporter (using Gmail as example)
-        const transporter = nodemailer.createTransporter({
-            service: 'gmail', 
+        const body = await request.json();
+        const { name, email, messageType, message } = body;
+
+        // Validate required fields
+        if (!name || !email || !message) {
+            return Response.json(
+                { success: false, message: 'Missing required fields' },
+                { status: 400 }
+            );
+        }
+
+        // Create email transporter
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
             auth: {
                 user: process.env.EMAIL_USER,
                 pass: process.env.EMAIL_PASS,
             },
         });
 
+        // Verify transporter configuration
+        try {
+            await transporter.verify();
+        } catch (verifyError) {
+            return Response.json(
+                { success: false, message: 'Email configuration error' },
+                { status: 500 }
+            );
+        }
+
         // Format message types
-        const messageTypeStr = messageType.length > 0 ? messageType.join(', ') : 'General';
+        const messageTypeStr = Array.isArray(messageType) && messageType.length > 0 
+            ? messageType.join(', ') 
+            : 'General';
 
         // Email to you (receiving the contact form)
         const mailToYou = {
@@ -99,9 +120,12 @@ export async function POST(request) {
         );
 
     } catch (error) {
-        console.error('Email sending error:', error);
         return Response.json(
-            { success: false, message: 'Failed to send email. Please try again.' },
+            { 
+                success: false, 
+                message: 'Failed to send email. Please try again.',
+                error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            },
             { status: 500 }
         );
     }
