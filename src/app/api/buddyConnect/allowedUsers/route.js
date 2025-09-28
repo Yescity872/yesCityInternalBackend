@@ -8,27 +8,37 @@ export const GET = withAuth(async (req) => {
     const userId = req.user.userId; // Current user
     await connectToDatabase();
 
-    // Fetch current user to get connectedUsers and pendingRequests
-    const currentUser = await User.findById(userId).select('connectedUsers pendingRequests');
+    // Fetch current user to get connectedUsers, pendingRequests, and followingUsers
+    const currentUser = await User.findById(userId).select(
+      'connectedUsers pendingRequests followingUsers'
+    );
     if (!currentUser) {
-      return new Response(JSON.stringify({ error: 'User not found' }), { status: 404 });
+      return new Response(JSON.stringify({ error: 'User not found' }), {
+        status: 404,
+      });
     }
 
     const excludeIds = [
       userId,
       ...currentUser.connectedUsers.map((id) => id.toString()),
       ...currentUser.pendingRequests.map((id) => id.toString()),
+      ...currentUser.followingUsers.map((id) => id.toString()), // ✅ exclude following
     ];
 
     // Fetch allowed users excluding the ones in excludeIds
     const users = await User.find({
       allowToConnect: true,
       _id: { $nin: excludeIds },
-    }).select('username isPremium contributionPoints referralCount favouriteCities');
+    }).select(
+      'username isPremium contributionPoints referralCount favouriteCities'
+    );
 
     return new Response(JSON.stringify({ users }), { status: 200 });
   } catch (err) {
     console.error('Error fetching allowed users:', err);
-    return new Response(JSON.stringify({ error: 'Failed to fetch users' }), { status: 500 });
+    return new Response(
+      JSON.stringify({ error: 'Failed to fetch users' }),
+      { status: 500 }
+    );
   }
 });
