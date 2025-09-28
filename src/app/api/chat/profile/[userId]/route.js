@@ -6,13 +6,13 @@ import { withAuth } from '@/middleware/auth';
 
 export const GET = withAuth(async (req, context) => {
   try {
-    const { userId } = context.params; // ✅ from /api/profile/[userId]
+    const { userId } = await context.params; // ✅ from /api/profile/[userId]
 
     await connectToDatabase();
 
     // Fetch only selected fields
     const user = await User.findById(userId).select(
-      'username profileImage isPremium contributionPoints referralCount'
+      'username isPremium contributionPoints referralCount'
     );
 
     if (!user) {

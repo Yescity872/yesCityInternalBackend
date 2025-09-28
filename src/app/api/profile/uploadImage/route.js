@@ -154,6 +154,7 @@ export const POST = withAuth(async (req) => {
       user.monthlyPoints += 3;
     } 
     
+    
     await user.save();
 
     // Clean up old image from Cloudinary (run in background)
