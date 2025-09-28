@@ -14,19 +14,49 @@ const userSchema = new mongoose.Schema({
   password: {
     type: String,
   },
+
+
+  allowToConnect: {
+    type: Boolean,
+    default: false,
+  },
+  favouriteCities: [
+    {
+      type: String,
+    },
+  ],
+  connectedUsers: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    },
+  ],
+  pendingRequests: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User', // users who sent friend requests but not accepted yet
+    },
+  ],
+
+
+
+
   googleId: {
     type: String,
   },
   profileImage: {
     type: String,
-    default: 'https://i.pinimg.com/736x/57/00/c0/5700c04197ee9a4372a35ef16eb78f4e.jpg',
+    default:
+      'https://i.pinimg.com/736x/57/00/c0/5700c04197ee9a4372a35ef16eb78f4e.jpg',
   },
-  firstProfile:{type: Boolean, default: false},
+  firstProfile: { type: Boolean, default: false },
   phone: {
     type: String,
     required: true,
     unique: true,
   },
+
+  // ✅ Wishlist
   wishlist: [
     {
       cityName: { type: String, required: true },
@@ -46,6 +76,7 @@ const userSchema = new mongoose.Schema({
       },
     },
   ],
+
   isPremium: {
     type: String,
     enum: ['FREE', 'A', 'B'],
@@ -57,7 +88,7 @@ const userSchema = new mongoose.Schema({
   },
   premiumExpiryDate: {
     type: Date,
-    default: null, // means "infinite / no expiry"
+    default: null,
   },
   referralCode: {
     type: String,
@@ -67,19 +98,18 @@ const userSchema = new mongoose.Schema({
   referredBy: {
     type: String,
   },
-contributionPoints: {
-  type: Number,
-  default: 0,
-},
-monthlyPoints: {
-  type: Number,
-  default: 0,
-},
-pointsMonth: {
-  type: Date,
-  default: Date.now,
-},
-
+  contributionPoints: {
+    type: Number,
+    default: 0,
+  },
+  monthlyPoints: {
+    type: Number,
+    default: 0,
+  },
+  pointsMonth: {
+    type: Date,
+    default: Date.now,
+  },
   referralCount: {
     type: Number,
     default: 0,
@@ -96,9 +126,9 @@ pointsMonth: {
   resetTokenExpiry: Date,
 });
 
-// ✅ Compound index to make wishlist items unique per user
+// ✅ Compound index for wishlist uniqueness
 userSchema.index(
-  { _id: 1, "wishlist.parentRef": 1, "wishlist.onModel": 1 },
+  { _id: 1, 'wishlist.parentRef': 1, 'wishlist.onModel': 1 },
   { unique: true, sparse: true }
 );
 
