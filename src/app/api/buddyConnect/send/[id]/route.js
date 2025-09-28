@@ -18,10 +18,13 @@ export const POST = withAuth(async (req, { params }) => {
     }
 
     const toUser = await User.findById(toUserId);
-    if (!toUser)
+    const fromUser = await User.findById(fromUserId);
+
+    if (!toUser || !fromUser) {
       return new Response(JSON.stringify({ error: 'User not found' }), {
         status: 404,
       });
+    }
 
     // ✅ Check if that user has allowed connections
     if (!toUser.allowToConnect) {
@@ -31,7 +34,7 @@ export const POST = withAuth(async (req, { params }) => {
       );
     }
 
-    // Check if already connected
+    // ✅ Check if already connected
     if (toUser.connectedUsers.includes(fromUserId)) {
       return new Response(
         JSON.stringify({ error: 'Already friends' }),
@@ -39,10 +42,16 @@ export const POST = withAuth(async (req, { params }) => {
       );
     }
 
-    // Add to pendingRequests if not already
+    // ✅ Add to "pendingRequests" if not already present
     if (!toUser.pendingRequests.includes(fromUserId)) {
       toUser.pendingRequests.push(fromUserId);
       await toUser.save();
+    }
+
+    // ✅ Add to "followingUsers" of fromUser if not already present
+    if (!fromUser.followingUsers.includes(toUserId)) {
+      fromUser.followingUsers.push(toUserId);
+      await fromUser.save();
     }
 
     return new Response(

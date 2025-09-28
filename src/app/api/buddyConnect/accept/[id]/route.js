@@ -27,7 +27,7 @@ export const POST = withAuth(async (req, { params }) => {
       );
     }
 
-    // Check if request exists
+    // ✅ Check if request exists
     if (!toUser.pendingRequests.includes(fromUserId)) {
       return new Response(
         JSON.stringify({ error: 'No such pending request' }),
@@ -35,18 +35,23 @@ export const POST = withAuth(async (req, { params }) => {
       );
     }
 
-    // Remove from pendingRequests
+    // ✅ Remove from pendingRequests
     toUser.pendingRequests = toUser.pendingRequests.filter(
       (id) => id.toString() !== fromUserId
     );
 
-    // Add each other as connected users
+    // ✅ Add each other as connected users
     if (!toUser.connectedUsers.includes(fromUserId)) {
       toUser.connectedUsers.push(fromUserId);
     }
     if (!fromUser.connectedUsers.includes(toUserId)) {
       fromUser.connectedUsers.push(toUserId);
     }
+
+    // ✅ Remove "followingUsers" entry from the sender
+    fromUser.followingUsers = fromUser.followingUsers.filter(
+      (id) => id.toString() !== toUserId
+    );
 
     await toUser.save();
     await fromUser.save();

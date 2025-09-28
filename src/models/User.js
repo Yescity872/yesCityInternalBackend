@@ -15,30 +15,22 @@ const userSchema = new mongoose.Schema({
     type: String,
   },
 
-
-  allowToConnect: {
-    type: Boolean,
-    default: false,
-  },
-  favouriteCities: [
-    {
-      type: String,
-    },
-  ],
-  connectedUsers: [
-    {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-    },
-  ],
-  pendingRequests: [
-    {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User', // users who sent friend requests but not accepted yet
-    },
-  ],
-
-
+allowToConnect: {
+  type: Boolean,
+  default: false,
+},
+favouriteCities: [
+  { type: String },
+],
+connectedUsers: [
+  { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // friends
+],
+pendingRequests: [
+  { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // received requests
+],
+followingUsers: [
+  { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // sent requests
+],
 
 
   googleId: {
