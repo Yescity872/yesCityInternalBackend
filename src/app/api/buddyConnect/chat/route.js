@@ -1,4 +1,4 @@
-// /api/chat/buddy/route.js
+// /api/buddyConnect/chat/route.js (or wherever your actual route is)
 import { connectToDatabase } from '@/lib/db';
 import BuddyMessage from '@/models/BuddyMessage';
 import User from '@/models/User';
@@ -10,7 +10,6 @@ const getConversationId = (id1, id2) =>
   [id1.toString(), id2.toString()].sort().join("_");
 
 // ---------------- GET ----------------
-// Fetch buddy chat messages
 export const GET = withAuth(async (req) => {
   try {
     const userId = req.user.userId;
@@ -59,7 +58,6 @@ export const GET = withAuth(async (req) => {
 });
 
 // ---------------- POST ----------------
-// Send buddy chat message
 export const POST = withAuth(async (req) => {
   try {
     const senderId = req.user.userId;
@@ -117,22 +115,29 @@ export const POST = withAuth(async (req) => {
     const newMessage = new BuddyMessage(messageData);
     await newMessage.save();
 
+    // ✅ FIXED: Convert ObjectIds to strings for consistent frontend comparison
+    const pusherPayload = {
+      _id: newMessage._id.toString(),
+      conversationId,
+      senderId: newMessage.senderId.toString(), // ✅ Convert to string
+      receiverId: newMessage.receiverId.toString(), // ✅ Convert to string
+      senderName: sender.username,
+      content: newMessage.content || null,
+      messageType: newMessage.messageType,
+      mediaUrl: newMessage.mediaUrl || null,
+      mediaFileName: newMessage.mediaFileName || null,
+      mediaSize: newMessage.mediaSize || null,
+      mediaType: newMessage.mediaType || null,
+      createdAt: newMessage.createdAt,
+    };
+
     // Realtime event
     try {
-      await pusher.trigger(`buddy-${conversationId}`, "new-message", {
-        _id: newMessage._id,
-        conversationId,
-        senderId,
-        receiverId,
-        senderName: sender.username,
-        content: newMessage.content || null,
-        messageType: newMessage.messageType,
-        mediaUrl: newMessage.mediaUrl || null,
-        mediaFileName: newMessage.mediaFileName || null,
-        createdAt: newMessage.createdAt,
-      });
+      console.log('📤 Triggering Pusher event:', `buddy-${conversationId}`, pusherPayload);
+      await pusher.trigger(`buddy-${conversationId}`, "new-message", pusherPayload);
+      console.log('✅ Pusher event triggered successfully');
     } catch (err) {
-      console.error("Pusher error:", err);
+      console.error("❌ Pusher error:", err);
     }
 
     return new Response(
@@ -153,7 +158,6 @@ export const POST = withAuth(async (req) => {
 });
 
 // ---------------- DELETE ----------------
-// Delete own buddy message
 export const DELETE = withAuth(async (req) => {
   try {
     const userId = req.user.userId;
@@ -188,7 +192,7 @@ export const DELETE = withAuth(async (req) => {
 
     try {
       await pusher.trigger(`buddy-${message.conversationId}`, "delete-message", {
-        messageId,
+        messageId: messageId.toString(), // ✅ Ensure string
       });
     } catch (err) {
       console.error("Pusher error (delete):", err);
