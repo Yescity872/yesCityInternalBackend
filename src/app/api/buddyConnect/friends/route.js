@@ -22,13 +22,18 @@ export const GET = withAuth(async (req) => {
       : 'Enable allowToConnect to let other users connect with you';
 
     return new Response(
-      JSON.stringify({ friends: user.connectedUsers, message }),
-      { status: 200 }
+      JSON.stringify({ 
+        friends: user.connectedUsers, 
+        currentUserId: userId.toString(), // ✅ ADDED: Return current user ID
+        message 
+      }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
   } catch (err) {
     console.error('Error fetching friends:', err);
     return new Response(JSON.stringify({ error: 'Failed to fetch friends' }), {
       status: 500,
+      headers: { 'Content-Type': 'application/json' }
     });
   }
 });
