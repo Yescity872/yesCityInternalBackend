@@ -26,7 +26,15 @@ export const POST = withAuth(async (req, { params }) => {
       });
     }
 
-    // ✅ Check if that user has allowed connections
+    // ✅ Check if sender has enabled connections
+    if (!fromUser.allowToConnect) {
+      return new Response(
+        JSON.stringify({ error: 'You must allow connections to send requests' }),
+        { status: 403 }
+      );
+    }
+
+    // ✅ Check if recipient accepts requests
     if (!toUser.allowToConnect) {
       return new Response(
         JSON.stringify({ error: 'This user is not accepting requests' }),
@@ -42,13 +50,13 @@ export const POST = withAuth(async (req, { params }) => {
       );
     }
 
-    // ✅ Add to "pendingRequests" if not already present
+    // ✅ Add to "pendingRequests" of recipient
     if (!toUser.pendingRequests.includes(fromUserId)) {
       toUser.pendingRequests.push(fromUserId);
       await toUser.save();
     }
 
-    // ✅ Add to "followingUsers" of fromUser if not already present
+    // ✅ Add to "followingUsers" of sender
     if (!fromUser.followingUsers.includes(toUserId)) {
       fromUser.followingUsers.push(toUserId);
       await fromUser.save();
