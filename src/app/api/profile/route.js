@@ -12,7 +12,7 @@ export const GET = withAuth(async (req) => {
 
     // Fetch user (referredBy here is phone string)
     const user = await User.findById(userId).select(
-      '_id email username phone profileImage isPremium premiumStartDate premiumExpiryDate referralCode referredBy contributionPoints referralCount'
+      '_id email username phone profileImage isPremium premiumStartDate premiumExpiryDate referralCode referredBy contributionPoints referralCount connectedUsers pendingRequests followingUsers'
     );
 
     if (!user) {
@@ -21,6 +21,7 @@ export const GET = withAuth(async (req) => {
         headers: { 'Content-Type': 'application/json' },
       });
     }
+
 
     let referrerInfo = null;
 
