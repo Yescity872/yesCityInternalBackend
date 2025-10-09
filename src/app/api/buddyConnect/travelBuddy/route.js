@@ -18,7 +18,7 @@ export const GET = withAuth(async (req) => {
     const today = new Date();
 
     // Base query: upcoming travels
-    let query: any = { endDate: { $gte: today } };
+    let query= { endDate: { $gte: today } };
 
     // Optional city filter (case-insensitive)
     if (city) {
