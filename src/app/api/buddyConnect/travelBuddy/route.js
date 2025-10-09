@@ -17,22 +17,29 @@ export const GET = withAuth(async (req) => {
 
     const today = new Date();
 
-    let query = { endDate: { $gte: today } };
+    // Base query: upcoming travels
+    let query: any = { endDate: { $gte: today } };
 
-    // Optional city filter
+    // Optional city filter (case-insensitive)
     if (city) {
-      query.city = { $regex: new RegExp(city, 'i') }; // case-insensitive
+      query.city = { $regex: new RegExp(city, 'i') };
     }
 
-    // Optional date range overlap filter
+    // Handle date filters
     if (fromDate && toDate) {
+      // Both fromDate and toDate → overlap range
       const from = new Date(fromDate);
       const to = new Date(toDate);
-      query = {
-        ...query,
-        startDate: { $lte: to },
-        endDate: { $gte: from },
-      };
+      query.startDate = { $lte: to };
+      query.endDate = { $gte: from };
+    } else if (fromDate) {
+      // Only fromDate → travels starting after this date
+      const from = new Date(fromDate);
+      query.startDate = { $gte: from };
+    } else if (toDate) {
+      // Only toDate → travels ending before this date
+      const to = new Date(toDate);
+      query.endDate = { $lte: to };
     }
 
     const travels = await TravelBuddy.find(query)
@@ -51,6 +58,7 @@ export const GET = withAuth(async (req) => {
     });
   }
 });
+
 
 /**
  * POST: Add a new travel buddy plan
