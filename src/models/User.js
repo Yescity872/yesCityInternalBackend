@@ -15,10 +15,15 @@ const userSchema = new mongoose.Schema({
     type: String,
   },
 
+  acceptConnectTandC:{
+    type: Boolean,
+    default: false,
+  },
   allowToConnect: {
     type: Boolean,
     default: false,
   },
+  
   favouriteCities: [
     { type: String },
   ],

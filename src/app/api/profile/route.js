@@ -12,7 +12,7 @@ export const GET = withAuth(async (req) => {
 
     // Fetch user (referredBy here is phone string)
     const user = await User.findById(userId).select(
-      '_id email username phone profileImage isPremium premiumStartDate premiumExpiryDate referralCode referredBy contributionPoints referralCount connectedUsers pendingRequests followingUsers'
+      '_id email username phone profileImage isPremium premiumStartDate premiumExpiryDate referralCode referredBy contributionPoints referralCount connectedUsers pendingRequests followingUsers allowToConnect acceptConnectTandC'
     );
 
     if (!user) {
