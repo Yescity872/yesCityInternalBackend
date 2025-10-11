@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/db';
 
-import City from '@/models/City';
+// import City from '@/models/City';
 import Accommodation from '@/models/CityRoutes/Accommodation';
 import Activity from '@/models/CityRoutes/Activity';
 import CityInfo from '@/models/CityRoutes/CityInfo';
@@ -16,7 +16,7 @@ import Shop from '@/models/CityRoutes/Shop';
 import Transport from '@/models/CityRoutes/Transport';
 
 const modelMap = {
-  city: City,
+  // city: City,
   accommodation: Accommodation,
   activity: Activity,
   cityinfo: CityInfo,

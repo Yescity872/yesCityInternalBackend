@@ -23,3 +23,4 @@ export async function connectToDatabase() {
 
 // Default export kept for modules that import the legacy default (dbConnect)
 export default connectToDatabase;
+

@@ -21,8 +21,8 @@ const foodSchema = new Schema({
   reviews: [{ type: Schema.Types.ObjectId, ref: "Review" }],
 
   foodPlace: { type: String, required: true },
-  lat: { type: Number, required: true },
-  lon: { type: Number, required: true },
+  lat: { type: Number },
+  lon: { type: Number},
   address: { type: String, required: true },
   locationLink: { type: String },
 
