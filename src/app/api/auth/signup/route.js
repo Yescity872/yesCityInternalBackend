@@ -4,24 +4,50 @@ import jwt from 'jsonwebtoken';
 import { connectToDatabase } from '@/lib/db';
 import User from '@/models/User';
 import { extendUserPremium } from "@/lib/extendPremium";
-
-// Add cookie util from Next.js
-import { cookies } from 'next/headers';
+import { firebaseAdmin } from '@/lib/firebaseAdmin';
 
 export async function POST(req) {
   let body;
   try {
     body = await req.json();
-  } catch (err) {
+  } catch (error) {
+    console.error('Invalid signup payload', error);
     return NextResponse.json({ message: 'Invalid JSON body' }, { status: 400 });
   }
 
-  const { username, email, password, phone, referredBy, profileImage } = body;
+  const { username, email, password, phone, referredBy, profileImage, firebaseIdToken } = body;
 
   if (!username || !email || !password || !phone) {
     return NextResponse.json(
       { message: 'All fields are required (including phone)' },
       { status: 400 }
+    );
+  }
+
+
+    if (!firebaseIdToken) {
+    return NextResponse.json(
+      { message: 'Missing phone verification token' },
+      { status: 401 }
+    );
+  }
+  
+  let decoded;
+  try {
+    decoded = await firebaseAdmin.auth().verifyIdToken(firebaseIdToken, true);
+  } catch (err) {
+    console.error('Firebase token verification failed', err);
+    return NextResponse.json(
+      { message: 'Invalid or expired phone verification token' },
+      { status: 401 }
+    );
+  }
+  
+  const firebasePhone = decoded.phone_number?.replace(/^\+91/, ''); // adjust formatting
+  if (!firebasePhone || firebasePhone !== phone) {
+    return NextResponse.json(
+      { message: 'Phone number mismatch; please verify again.' },
+      { status: 403 }
     );
   }
 
@@ -37,11 +63,9 @@ export async function POST(req) {
     }
 
 
-  let referredByUserId = null;
   if (referredBy) {
     const refUser = await User.findOne({ referralCode: referredBy });
     if (refUser) {
-      referredByUserId = refUser._id;
       refUser.referralCount += 1;
 
       // --- Apply monthly contribution points cap (90) ---
@@ -89,6 +113,7 @@ export async function POST(req) {
       password: hashedPassword,
       phone,
       referralCode: phone,
+      isPhoneVerified: true,
       referredBy: referredBy,
       profileImage,
       isPremium: 'FREE',
@@ -107,7 +132,7 @@ export async function POST(req) {
     // Return response (without token in body)
     const response =  NextResponse.json(
       {
-        success: true,
+  success: true,
         message: 'User registered and logged in successfully',
         token,
         user: {
@@ -126,11 +151,11 @@ export async function POST(req) {
     response.cookies.set({
       name: 'token',
       value: token,
-  secure: process.env.NODE_ENV === "production", // only secure in prod
-  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-      sameSite: 'none',
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       path: '/',
-      maxAge: 60 * 60 * 24 * 7, // 7 da
+      maxAge: 60 * 60 * 24 * 7,
     });
 
     return response;

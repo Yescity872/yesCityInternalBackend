@@ -71,3 +71,7 @@ async function handler(req, context) {
 
 // ✅ Protect with auth
 export const GET = withAuth(handler);
+
+export function OPTIONS() {
+  return NextResponse.json({ success: true }, { status: 200 });
+}
