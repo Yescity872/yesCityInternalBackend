@@ -40,7 +40,7 @@ export async function GET(req, context) {
     await connectToDatabase();
 
     const results = {};
-    const excludeFields = { engagement: 0, reviews: 0, premium: 0 };
+    const excludeFields = { engagement: 0, reviews: 0 };
 
     for (const [key, Model] of Object.entries(modelMap)) {
       try {

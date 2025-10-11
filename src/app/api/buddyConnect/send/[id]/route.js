@@ -26,7 +26,7 @@ export const POST = withAuth(async (req, { params }) => {
       });
     }
 
-    // ✅ Check if sender has enabled connections
+    //  Check if sender has enabled connections
     if (!fromUser.allowToConnect) {
       return new Response(
         JSON.stringify({ error: 'You must allow connections to send requests' }),
@@ -34,7 +34,7 @@ export const POST = withAuth(async (req, { params }) => {
       );
     }
 
-    // ✅ Check if recipient accepts requests
+    //  Check if recipient accepts requests
     if (!toUser.allowToConnect) {
       return new Response(
         JSON.stringify({ error: 'This user is not accepting requests' }),
@@ -42,7 +42,7 @@ export const POST = withAuth(async (req, { params }) => {
       );
     }
 
-    // ✅ Check if already connected
+    //  Check if already connected
     if (toUser.connectedUsers.includes(fromUserId)) {
       return new Response(
         JSON.stringify({ error: 'Already friends' }),
@@ -50,13 +50,13 @@ export const POST = withAuth(async (req, { params }) => {
       );
     }
 
-    // ✅ Add to "pendingRequests" of recipient
+    //  Add to "pendingRequests" of recipient
     if (!toUser.pendingRequests.includes(fromUserId)) {
       toUser.pendingRequests.push(fromUserId);
       await toUser.save();
     }
 
-    // ✅ Add to "followingUsers" of sender
+    //  Add to "followingUsers" of sender
     if (!fromUser.followingUsers.includes(toUserId)) {
       fromUser.followingUsers.push(toUserId);
       await fromUser.save();
@@ -64,7 +64,7 @@ export const POST = withAuth(async (req, { params }) => {
 
     return new Response(
       JSON.stringify({ success: true, message: 'Request sent' }),
-      { status: 200 } 
+      { status: 200 }
     );
   } catch (err) {
     console.error('Error sending request:', err);
@@ -74,5 +74,3 @@ export const POST = withAuth(async (req, { params }) => {
     );
   }
 });
-
-

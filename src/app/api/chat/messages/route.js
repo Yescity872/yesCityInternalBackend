@@ -87,7 +87,7 @@ export const GET = withAuth(async (req) => {
 
 
 // POST - Send message or upload media
-import { pusher } from "@/lib/pusher"; // ✅ your pusher client
+import { pusher } from "@/lib/pusher"; //  your pusher client
 
 // /api/chat/messages/route.js - Updated POST handler
 
