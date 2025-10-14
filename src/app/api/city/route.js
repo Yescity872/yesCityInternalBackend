@@ -9,7 +9,7 @@ export async function GET() {
     await connectToDatabase();
 
     // ✅ Fetch all cities
-    const cities = await City.find({}).select("cityName content cover-image");
+    const cities = await City.find({}).select("cityName content cover-image onSite");
 
     return NextResponse.json({
       success: true,
