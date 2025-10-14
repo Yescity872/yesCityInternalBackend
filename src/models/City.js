@@ -13,7 +13,7 @@ const citySchema = new Schema({
       }
     ]
   },
- "cityName": { type: String, required: true },
+ cityName: { type: String, required: true },
  "cover-image": { type: String, required: true },
   content: {type: String},
   
