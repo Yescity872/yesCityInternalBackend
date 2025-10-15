@@ -24,12 +24,10 @@ export function withAuth(handler) {
     // ✅ If not in cookies, check headers (from localStorage on frontend)
     if (!token) {
       const authHeader = req.headers.get("authorization");
-      if (authHeader && authHeader.startsWith("Bearer ")) {
+        if (authHeader?.startsWith("Bearer ")) {
         token = authHeader.split(" ")[1];
       }
     }
-
-    console.log("Token: ", token);
 
     if (!token) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
@@ -83,7 +81,7 @@ export async function getUserFromCookies(req) {
   // ✅ If not in cookies, check headers (localStorage → frontend → request)
   if (!token && req?.headers) {
     const authHeader = req.headers.get("authorization");
-    if (authHeader && authHeader.startsWith("Bearer ")) {
+      if (authHeader?.startsWith("Bearer ")) {
       token = authHeader.split(" ")[1];
     }
   }

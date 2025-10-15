@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import User from '@/models/User';
 import { connectToDatabase } from '@/lib/db';
 import { extendUserPremium } from "@/lib/extendPremium";
+import { firebaseAdmin } from "@/lib/firebaseAdmin";
 
 
 export async function GET(req) {
@@ -24,20 +25,38 @@ export async function GET(req) {
   }
 
   // Retrieve phone and referredBy from state (sent back by Google)
-  let phone, referredBy;
+  let phone, referredBy, firebaseIdToken;
   try {
     const parsedState = JSON.parse(state || '{}');
     phone = parsedState.phone;
     referredBy = parsedState.referredBy;
+    firebaseIdToken = parsedState.firebaseIdToken;
   } catch (error) {
     console.error('Error parsing state:', error);
     phone = null;
     referredBy = null;
+    firebaseIdToken = null;
   }
 
-  // if (!phone) {
-  //   return NextResponse.json({ message: 'Phone number missing from state' }, { status: 400 });
-  // }
+  if (!phone || !firebaseIdToken) {
+    const redirectUrl = `${process.env.FRONTEND_URL}/signup?error=missing_phone_token`;
+    return NextResponse.redirect(redirectUrl);
+  }
+
+  let decodedToken;
+  try {
+    decodedToken = await firebaseAdmin.auth().verifyIdToken(firebaseIdToken, true);
+  } catch (error) {
+    console.error('Firebase token verification failed:', error);
+    const redirectUrl = `${process.env.FRONTEND_URL}/signup?error=invalid_phone_token`;
+    return NextResponse.redirect(redirectUrl);
+  }
+
+  const firebasePhone = decodedToken.phone_number?.replace(/^\+91/, '');
+  if (!firebasePhone || firebasePhone !== phone) {
+    const redirectUrl = `${process.env.FRONTEND_URL}/signup?error=phone_mismatch`;
+    return NextResponse.redirect(redirectUrl);
+  }
 
   try {
     // Step 1: Exchange code for access token
@@ -87,7 +106,6 @@ export async function GET(req) {
       if (referredBy) {
         const refUser = await User.findOne({ referralCode: referredBy });
         if (refUser) {
-          // referredByUserId = refUser._id;
           refUser.referralCount += 1;
 
           // --- Apply monthly contribution points cap (90) ---
@@ -164,7 +182,7 @@ const redirectUrl = `${process.env.FRONTEND_URL}/?googleCheck=true&token=${token
     }
      else {
       // 🚨 Case: user doesn’t exist AND no phone provided
-      const redirectUrl = `${process.env.FRONTEND_URL}/signup`;
+      const redirectUrl = `${process.env.FRONTEND_URL}/signup?error=missing_phone`;
       return NextResponse.redirect(redirectUrl);
     }
   }
