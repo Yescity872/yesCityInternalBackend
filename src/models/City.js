@@ -17,7 +17,7 @@ const citySchema = new Schema({
  "cover-image": { type: String, required: true },
   content: {type: String},
   
-  onSite: {type: Boolean, default: false}
+  onSite: {type: Boolean, default: true}
 });
 
 const City = mongoose.models.City || mongoose.model("City", citySchema);
