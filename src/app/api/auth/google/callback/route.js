@@ -25,37 +25,43 @@ export async function GET(req) {
   }
 
   // Retrieve phone and referredBy from state (sent back by Google)
-  let phone, referredBy, firebaseIdToken;
+  let phone, referredBy, firebaseIdToken, isLogin;
   try {
     const parsedState = JSON.parse(state || '{}');
     phone = parsedState.phone;
     referredBy = parsedState.referredBy;
     firebaseIdToken = parsedState.firebaseIdToken;
+    isLogin = parsedState.isLogin; // Check if this is a login flow
   } catch (error) {
     console.error('Error parsing state:', error);
     phone = null;
     referredBy = null;
     firebaseIdToken = null;
+    isLogin = false;
   }
 
-  if (!phone || !firebaseIdToken) {
+  // For login flow (existing users), skip phone verification requirement
+  if (!isLogin && (!phone || !firebaseIdToken)) {
     const redirectUrl = `${process.env.FRONTEND_URL}/signup?error=missing_phone_token`;
     return NextResponse.redirect(redirectUrl);
   }
 
-  let decodedToken;
-  try {
-    decodedToken = await firebaseAdmin.auth().verifyIdToken(firebaseIdToken, true);
-  } catch (error) {
-    console.error('Firebase token verification failed:', error);
-    const redirectUrl = `${process.env.FRONTEND_URL}/signup?error=invalid_phone_token`;
-    return NextResponse.redirect(redirectUrl);
-  }
+  // Only verify Firebase token if it's provided (signup flow)
+  if (firebaseIdToken) {
+    let decodedToken;
+    try {
+      decodedToken = await firebaseAdmin.auth().verifyIdToken(firebaseIdToken, true);
+    } catch (error) {
+      console.error('Firebase token verification failed:', error);
+      const redirectUrl = `${process.env.FRONTEND_URL}/signup?error=invalid_phone_token`;
+      return NextResponse.redirect(redirectUrl);
+    }
 
-  const firebasePhone = decodedToken.phone_number?.replace(/^\+91/, '');
-  if (!firebasePhone || firebasePhone !== phone) {
-    const redirectUrl = `${process.env.FRONTEND_URL}/signup?error=phone_mismatch`;
-    return NextResponse.redirect(redirectUrl);
+    const firebasePhone = decodedToken.phone_number?.replace(/^\+91/, '');
+    if (!firebasePhone || firebasePhone !== phone) {
+      const redirectUrl = `${process.env.FRONTEND_URL}/signup?error=phone_mismatch`;
+      return NextResponse.redirect(redirectUrl);
+    }
   }
 
   try {
@@ -100,10 +106,15 @@ export async function GET(req) {
     });
 
    if (!user) {
-    if (phone) {
+    // User doesn't exist - this is a signup flow
+    if (!phone) {
+      // 🚨 Case: user doesn't exist AND no phone provided
+      const redirectUrl = `${process.env.FRONTEND_URL}/signup?error=missing_phone`;
+      return NextResponse.redirect(redirectUrl);
+    }
 
-      // ✅ Normal signup with phone (already in your code)
-      if (referredBy) {
+    // ✅ Normal signup with phone
+    if (referredBy) {
         const refUser = await User.findOne({ referralCode: referredBy });
         if (refUser) {
           refUser.referralCount += 1;
@@ -158,36 +169,31 @@ export async function GET(req) {
         password: '',
       });
 
-          // Step 4: Generate JWT
-    const token = jwt.sign(
-      { userId: user._id, email: user.email, username: user.username, phone: user.phone },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' }
-    );
+      // Generate JWT for new user
+      const token = jwt.sign(
+        { userId: user._id, email: user.email, username: user.username, phone: user.phone },
+        process.env.JWT_SECRET,
+        { expiresIn: '7d' }
+      );
 
-    // Case: new user with phone
-const redirectUrl = `${process.env.FRONTEND_URL}/?googleCheck=true&token=${token}`;
-    const res = NextResponse.redirect(redirectUrl);       // or NextResponse.redirect(redirectUrl, headers: {"Set-Cookie" : }
-    res.cookies.set({
-      name: 'token',
-      value: token,
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-      path: '/',
-      maxAge: 60 * 60 * 24 * 7, // 7 days
-    });
-    return res;
-
-    }
-     else {
-      // 🚨 Case: user doesn’t exist AND no phone provided
-      const redirectUrl = `${process.env.FRONTEND_URL}/signup?error=missing_phone`;
-      return NextResponse.redirect(redirectUrl);
-    }
+      // Case: new user with phone
+      const redirectUrl = `${process.env.FRONTEND_URL}/?googleCheck=true&token=${token}`;
+      const res = NextResponse.redirect(redirectUrl);
+      res.cookies.set({
+        name: 'token',
+        value: token,
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+        path: '/',
+        maxAge: 60 * 60 * 24 * 7, // 7 days
+      });
+      return res;
   }
 
-    // Step 4: Generate JWT
+    // User exists - this is a login flow
+    // User exists - this is a login flow
+    // Generate JWT for existing user
     const token = jwt.sign(
       { userId: user._id, email: user.email, username: user.username, phone: user.phone },
       process.env.JWT_SECRET,
@@ -201,8 +207,8 @@ const redirectUrl = `${process.env.FRONTEND_URL}/?googleCheck=true&token=${token
       name: 'token',
       value: token,
       httpOnly: true,
-  secure: process.env.NODE_ENV === "production", // only secure in prod
-  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      secure: process.env.NODE_ENV === "production", // only secure in prod
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
       path: '/',
       maxAge: 60 * 60 * 24 * 7, // 7 days
     });
