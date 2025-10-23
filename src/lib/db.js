@@ -17,7 +17,7 @@ export async function connectToDatabase() {
   }
 
   return mongoose.connect(MONGO_URI, {
-    dbName: 'YesCity3', // 👈 your new database here
+    dbName: 'YesCity3', //  your new database here
   });
 }
 

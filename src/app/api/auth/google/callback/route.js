@@ -38,8 +38,12 @@ export async function GET(req) {
     firebaseIdToken = null;
   }
 
-  if (!phone || !firebaseIdToken) {
-    const redirectUrl = `${process.env.FRONTEND_URL}/signup?error=missing_phone_token`;
+  if (!phone) {
+    const redirectUrl = `${process.env.FRONTEND_URL}/signup?error=missing_phone`;
+    return NextResponse.redirect(redirectUrl);
+  }
+  else if(!firebaseIdToken){
+        const redirectUrl = `${process.env.FRONTEND_URL}/signup?error=missing_firebase`;
     return NextResponse.redirect(redirectUrl);
   }
 
