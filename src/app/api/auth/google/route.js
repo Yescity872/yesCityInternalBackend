@@ -9,11 +9,13 @@ export async function GET(req) {
   //   return NextResponse.json({ message: 'State parameter is required' }, { status: 400 });
   // }
 
-  let phone, referredBy;
+  let phone, referredBy, isLogin, firebaseIdToken;
   try {
     const parsedState = JSON.parse(state);
     phone = parsedState.phone;
     referredBy = parsedState.referredBy;
+    isLogin = parsedState.isLogin; // Preserve login flag
+    firebaseIdToken = parsedState.firebaseIdToken; // Preserve firebase token
   } catch (error) {
     console.error('Error parsing state:', error);
     return NextResponse.json({ message: 'Invalid state parameter' }, { status: 400 });
@@ -33,7 +35,12 @@ export async function GET(req) {
   oauthURL.searchParams.set('scope', 'openid email profile');
   oauthURL.searchParams.set('access_type', 'offline');
   oauthURL.searchParams.set('prompt', 'consent');
-  oauthURL.searchParams.set('state', JSON.stringify({ phone, referredBy: referredBy || null }));
+  oauthURL.searchParams.set('state', JSON.stringify({ 
+    phone, 
+    referredBy: referredBy || null,
+    isLogin: isLogin || false,
+    firebaseIdToken: firebaseIdToken || null
+  }));
 
   // ✅ Debugging logs
   console.log("🔍 redirect_uri being sent:", REDIRECT_URI);
