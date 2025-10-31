@@ -2,26 +2,32 @@
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/db';
 import Festival from '@/models/Festivals';
+import Review from '@/models/Review';
 import mongoose from 'mongoose';
 
-// GET - Fetch festival by ID
+// GET - Fetch festival by ID or Name
 export async function GET(req, { params }) {
   try {
     await connectToDatabase();
 
     const { id } = params;
+    const identifier = decodeURIComponent(id);
 
-    // Validate MongoDB ObjectId
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return NextResponse.json(
-        { success: false, message: 'Invalid festival ID' },
-        { status: 400 }
-      );
+    let festival;
+
+    // Check if it's a valid ObjectId
+    if (mongoose.Types.ObjectId.isValid(identifier)) {
+      festival = await Festival.findById(identifier)
+        .populate('reviews')
+        .lean();
+    } else {
+      // Assume it's a festival name
+      festival = await Festival.findOne({
+        name: new RegExp(`^${identifier}$`, 'i') // Case-insensitive exact match
+      })
+        .populate('reviews')
+        .lean();
     }
-
-    const festival = await Festival.findById(id)
-      .populate('reviews')
-      .lean();
 
     if (!festival) {
       return NextResponse.json(
@@ -31,7 +37,7 @@ export async function GET(req, { params }) {
     }
 
     // Increment view count
-    await Festival.findByIdAndUpdate(id, {
+    await Festival.findByIdAndUpdate(festival._id, {
       $inc: { 'engagement.views': 1 },
     });
 
@@ -40,7 +46,7 @@ export async function GET(req, { params }) {
       data: festival,
     });
   } catch (error) {
-    console.error('Error fetching festival by ID:', error);
+    console.error('Error fetching festival by ID or Name:', error);
     return NextResponse.json(
       { success: false, message: 'Failed to fetch festival', error: error.message },
       { status: 500 }

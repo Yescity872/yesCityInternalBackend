@@ -12,6 +12,9 @@ export async function GET(req) {
     const city = searchParams.get('city');
     const state = searchParams.get('state');
     const category = searchParams.get('category');
+    const date = searchParams.get('date');
+    const premium = searchParams.get('premium');
+    const best_experience_time = searchParams.get('best_experience_time');
     const limit = Number.parseInt(searchParams.get('limit')) || 50;
     const page = Number.parseInt(searchParams.get('page')) || 1;
 
@@ -20,6 +23,9 @@ export async function GET(req) {
     if (city) filter.city = new RegExp(city, 'i'); // Case-insensitive
     if (state) filter.state = new RegExp(state, 'i');
     if (category) filter.category = category;
+    if (date) filter.date = date; // Exact match for date
+    if (premium) filter.premium = premium;
+    if (best_experience_time) filter.best_experience_time = new RegExp(best_experience_time, 'i');
 
     // Fetch festivals with pagination
     const skip = (page - 1) * limit;
