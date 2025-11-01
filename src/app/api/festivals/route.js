@@ -72,6 +72,26 @@ export async function POST(req) {
       );
     }
 
+    // Validate date format: accept ISO-8601 or any string parseable by Date
+    const parsedDate = new Date(body.date);
+    if (Number.isNaN(parsedDate.getTime())) {
+      return NextResponse.json(
+        { success: false, message: 'Invalid date format. Use ISO-8601 date string.' },
+        { status: 400 }
+      );
+    }
+
+    // Validate duration_days
+    if (typeof body.duration_days !== 'number' || body.duration_days <= 0) {
+      return NextResponse.json({ success: false, message: 'duration_days must be a positive number' }, { status: 400 });
+    }
+
+    // Validate category against allowed values
+    const allowedCategories = ["Religious", "Religious Celebration", "Cultural", "Seasonal", "Regional", "National"];
+    if (body.category && !allowedCategories.includes(body.category)) {
+      return NextResponse.json({ success: false, message: `Invalid category. Allowed: ${allowedCategories.join(', ')}` }, { status: 400 });
+    }
+
     // Process media images from the flat structure in your JSON
     const images = [];
     if (body.media) {
@@ -83,13 +103,34 @@ export async function POST(req) {
       }
     }
 
+    // Generate a URL-friendly slug (ensure uniqueness by appending a short suffix if needed)
+    const generateSlug = (name) => {
+      if (!name) return '';
+      const base = name.toString().toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .trim()
+        .replace(/\s+/g, '-');
+      return base;
+    };
+
+    let slug = generateSlug(body.name);
+    // If slug collides, append a short suffix (timestamp-based) — this is simple but effective
+    if (slug) {
+      const existing = await Festival.findOne({ slug });
+      if (existing) {
+        slug = `${slug}-${Date.now().toString().slice(-4)}`;
+      }
+    }
+
     // Create festival data structure
     const festivalData = {
       name: body.name,
+      slug,
       city: body.city,
       state: body.state,
       country: body.country || 'India',
-      date: body.date,
+  // store as Date object
+  date: parsedDate,
       duration_days: body.duration_days,
       category: body.category || 'Cultural',
       about: body.about,

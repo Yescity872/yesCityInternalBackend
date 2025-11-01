@@ -21,9 +21,12 @@ export async function GET(req, { params }) {
         .populate('reviews')
         .lean();
     } else {
-      // Assume it's a festival name
+      // Assume it's a festival name or slug
       festival = await Festival.findOne({
-        name: new RegExp(`^${identifier}$`, 'i') // Case-insensitive exact match
+        $or: [
+          { slug: identifier },
+          { name: new RegExp(`^${identifier}$`, 'i') }, // Case-insensitive exact match
+        ],
       })
         .populate('reviews')
         .lean();
@@ -81,6 +84,33 @@ export async function PUT(req, { params }) {
       if (images.length > 0) {
         body.media.images = images;
       }
+    }
+
+    // Normalize date field if provided
+    if (body.date) {
+      const parsed = new Date(body.date);
+      if (Number.isNaN(parsed.getTime())) {
+        return NextResponse.json(
+          { success: false, message: 'Invalid date format' },
+          { status: 400 }
+        );
+      }
+      body.date = parsed;
+    }
+
+    // If name changed, regenerate slug (ensure uniqueness)
+    if (body.name) {
+      const generateBaseSlug = (name) => {
+        return name.toString().toLowerCase().replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-');
+      };
+
+      const base = generateBaseSlug(body.name);
+      let newSlug = base;
+      const existing = await Festival.findOne({ slug: newSlug });
+      if (existing && existing._id.toString() !== id) {
+        newSlug = `${base}-${Date.now().toString().slice(-4)}`;
+      }
+      body.slug = newSlug;
     }
 
     const festival = await Festival.findByIdAndUpdate(

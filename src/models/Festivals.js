@@ -25,9 +25,10 @@ const festivalSchema = new Schema(
     },
     
     // Festival Details
-    date: { 
-      type: String, 
-      required: true 
+    // Use a Date type for accurate sorting and range queries. Accepts ISO date strings on input.
+    date: {
+      type: Date,
+      required: true,
     },
     duration_days: { 
       type: Number, 
@@ -137,6 +138,12 @@ const festivalSchema = new Schema(
     },
     
     // Metadata
+    // URL-friendly slug for stable links
+    slug: {
+      type: String,
+      unique: true,
+      index: true,
+    },
     createdAt: { 
       type: Date, 
       default: Date.now 
