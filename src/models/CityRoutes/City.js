@@ -14,7 +14,7 @@ const citySchema = new Schema({
     ]
   },
  "cityName": { type: String, required: true },
- "cover-image": { type: String, required: true },
+ "coverImage": { type: String, required: true },
   content: {type: String},
   
   onSite: {type: Boolean, default: false}

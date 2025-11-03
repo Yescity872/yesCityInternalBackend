@@ -111,7 +111,7 @@ export const GET = withAuth(async (req) => {
 
     // ✅ Step 2: Fetch city info for those unique cities
     const cityInfos = await City.find({ cityName: { $in: uniqueCities } })
-      .select("cityName content cover-image") // match your schema keys
+      .select("cityName content coverImage") // match your schema keys
       .lean();
 
     return NextResponse.json({
