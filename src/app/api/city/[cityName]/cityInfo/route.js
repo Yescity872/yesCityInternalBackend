@@ -79,8 +79,8 @@ export async function GET(req, context) {
 
   if (page === 1) {
     // ✅ Try to get user (if logged in)
-    const user = await getUserFromCookies();
-    return coreHandler(req, context, user); // pass user if found, else null
+    const user = await getUserFromCookies(req); // ✅ fixed: pass req
+    return coreHandler(req, context, user);
   }
 
   // ✅ Page > 1 always requires auth
@@ -88,3 +88,4 @@ export async function GET(req, context) {
     return coreHandler(reqWithAuth, contextWithAuth, reqWithAuth.user);
   })(req, context);
 }
+
