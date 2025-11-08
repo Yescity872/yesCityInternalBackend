@@ -23,8 +23,10 @@
     "nodemailer": "^6.10.1",
     "pusher": "^5.2.0",
     "pusher-js": "^8.4.0",
+    "razorpay": "^2.9.6",
     "react": "19.1.0",
     "react-dom": "19.1.0",
+    "slugify": "^1.6.6",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",
     "uuid": "^11.1.0"

@@ -41,7 +41,7 @@ export async function POST(req) {
         isPremium: user.isPremium,
       },
       JWT_SECRET,
-      { expiresIn: '7d' }
+      { expiresIn: '30d' }
     );
 
     // ✅ Create response first
@@ -67,7 +67,7 @@ export async function POST(req) {
   secure: process.env.NODE_ENV === "production", // only secure in prod
   sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
       path: '/',
-      maxAge: 60 * 60 * 24 * 7, // 7 days
+      maxAge: 60 * 60 * 24 * 30, // 30 days
     });
 
     return response;
