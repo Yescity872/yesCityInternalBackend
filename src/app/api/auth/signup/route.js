@@ -126,7 +126,7 @@ export async function POST(req) {
     const token = jwt.sign(
       { userId: user._id, email: user.email, phone: user.phone },
       process.env.JWT_SECRET,
-      { expiresIn: '7d' }
+      { expiresIn: '30d' }
     );
 
     // Return response (without token in body)
@@ -147,7 +147,7 @@ export async function POST(req) {
       },
       { status: 201 }
     );
-        // ✅ set cookie on the response
+        //  set cookie on the response
     response.cookies.set({
       name: 'token',
       value: token,
@@ -155,7 +155,7 @@ export async function POST(req) {
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       path: '/',
-      maxAge: 60 * 60 * 24 * 7,
+      maxAge: 60 * 60 * 24 * 30,
     });
 
     return response;
