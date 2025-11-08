@@ -1,51 +1,49 @@
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/db';
 import Connectivity from '@/models/CityRoutes/Connectivity';
-import { withAuth } from '@/middleware/auth';
-import { recordCategoryEngagement } from '@/lib/engagement'; // ✅ import utility
-
-
-// ✅ Premium access logic
-function getAccessiblePremiums(userPremium) {
-  if (userPremium === 'B') return ['FREE', 'A', 'B'];
-  if (userPremium === 'A') return ['FREE', 'A'];
-  return ['FREE'];
-}
+import { withAuth, getUserFromCookies } from '@/middleware/auth';
+import { recordCategoryEngagement } from '@/lib/engagement';
 
 // ✅ Core handler (shared for public & auth)
 async function coreHandler(req, context, user = null) {
   try {
     await connectToDatabase();
 
-    const userPremium = user?.isPremium || 'FREE';
     const { cityName } = await context.params;
     const formattedCityName = decodeURIComponent(cityName).toLowerCase();
 
-    // const accessiblePremiums = getAccessiblePremiums(userPremium);
-
     // ✅ Pagination
     const { searchParams } = new URL(req.url);
-    const page = parseInt(searchParams.get('page') || '1', 10);
+    const page = Number.parseInt(searchParams.get('page') || '1', 10);
     const limit = 5;
     const skip = (page - 1) * limit;
 
-    // ✅ Fetch data
+    // ✅ Fetch data - only get records with valid location AND distance
     const connectivityRecords = await Connectivity.find({
       cityName: { $regex: new RegExp(`^${formattedCityName}$`, 'i') },
-      // premium: { $in: accessiblePremiums },
+      nearestAirportStationBusStand: { $exists: true, $nin: [null, ''] },
+      distance: { $exists: true, $nin: [null, ''] },
     })
       .select('_id cityName nearestAirportStationBusStand distance premium')
       .skip(skip)
-      .limit(limit);
+      .limit(limit)
+      .lean();
+    
+    // Additional filter for whitespace-only strings
+    const filteredRecords = connectivityRecords.filter(record => 
+      record.nearestAirportStationBusStand?.trim() && 
+      record.distance?.trim()
+    );
 
-    if (!connectivityRecords.length) {
+    if (!filteredRecords.length) {
       return NextResponse.json({ error: 'No connectivity data found' }, { status: 404 });
     }
 
-    // ✅ Count total
+    // ✅ Count total - same filter
     const total = await Connectivity.countDocuments({
       cityName: { $regex: new RegExp(`^${formattedCityName}$`, 'i') },
-      // premium: { $in: accessiblePremiums },
+      nearestAirportStationBusStand: { $exists: true, $nin: [null, ''] },
+      distance: { $exists: true, $nin: [null, ''] },
     });
 
     // ✅ Record engagement (including page=1 if user is logged in)
@@ -54,7 +52,7 @@ async function coreHandler(req, context, user = null) {
     }    
 
     return NextResponse.json({
-      data: connectivityRecords,
+      data: filteredRecords,
       pagination: {
         total,
         page,
@@ -68,20 +66,15 @@ async function coreHandler(req, context, user = null) {
   }
 }
 
-
-
-// ✅ Public entrypoint
 // ✅ Public for page=1, Auth required for page>1
-import { getUserFromCookies } from "@/middleware/auth"; // import the helper
-
 export async function GET(req, context) {
   const { searchParams } = new URL(req.url);
-  const page = parseInt(searchParams.get("page") || "1", 10);
+  const page = Number.parseInt(searchParams.get("page") || "1", 10);
 
   if (page === 1) {
     // ✅ Try to get user (if logged in)
     const user = await getUserFromCookies();
-    return coreHandler(req, context, user); // pass user if found, else null
+    return coreHandler(req, context, user);
   }
 
   // ✅ Page > 1 always requires auth
