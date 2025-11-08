@@ -25,11 +25,11 @@ async function handler(req) {
     let newStartDate = user.premiumStartDate;
     let newExpiryDate;
 
-    if (user.isPremium === "A" && user.premiumExpiryDate) {
-      // ✅ already premium A → extend from current expiry
+    if (user.isPremium === "A" && user.premiumExpiryDate && user.premiumExpiryDate > new Date()) {
+      // ✅ already premium A with active status → extend from current expiry
       newExpiryDate = new Date(user.premiumExpiryDate.getTime() + ninetyDays);
     } else {
-      // ✅ upgrading fresh → start today
+      // ✅ upgrading fresh or expired → start today
       newStartDate = new Date();
       newExpiryDate = new Date(Date.now() + ninetyDays);
     }

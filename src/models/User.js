@@ -84,7 +84,7 @@ const userSchema = new mongoose.Schema({
   },
   premiumStartDate: {
     type: Date,
-    default: Date.now,
+    default: null,
   },
   premiumExpiryDate: {
     type: Date,
