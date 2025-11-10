@@ -95,6 +95,7 @@ const MODELS = {
 import SELECT_FIELDS from "@/lib/selectFields.js";
 
 import City from "@/models/City.js";
+import Festival from "@/models/Festivals.js";
 
 export const GET = withAuth(async (req) => {
   try {
@@ -106,21 +107,30 @@ export const GET = withAuth(async (req) => {
       return NextResponse.json({ message: "User not found" }, { status: 404 });
     }
 
-    // ✅ Step 1: Extract unique city names
-    const uniqueCities = [...new Set(user.wishlist.map((item) => item.cityName))];
+    
+    const nonFestivalWishlistItems = user.wishlist.filter(item => item.onModel !== 'festivals');
+    const uniqueCityNames = [...new Set(nonFestivalWishlistItems.map((item) => item.cityName))];
+    
+    
+    const cities = await City.find({ cityName: { $in: uniqueCityNames } })
+      .select("cityName content coverImage")
+      .lean();
 
-    // ✅ Step 2: Fetch city info for those unique cities
-    const cityInfos = await City.find({ cityName: { $in: uniqueCities } })
-      .select("cityName content coverImage") // match your schema keys
+    
+    const festivalWishlistItems = user.wishlist.filter(item => item.onModel === 'festivals');
+    const festivalIds = [...new Set(festivalWishlistItems.map(item => item.parentRef))];
+    const festivals = await Festival.find({ _id: { $in: festivalIds } })
+      .select("name city state category media premium")
       .lean();
 
     return NextResponse.json({
       success: true,
-      count: cityInfos.length,
-      cities: cityInfos,
+      count: cities.length + festivals.length,
+      cities: cities,
+      festivals: festivals,
     });
   } catch (error) {
-    console.error("Error fetching wishlist cities:", error);
+    console.error("Error fetching wishlist:", error);
     return NextResponse.json(
       { success: false, error: "Server error" },
       { status: 500 }
