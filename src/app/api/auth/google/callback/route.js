@@ -173,7 +173,7 @@ export async function GET(req) {
       const token = jwt.sign(
         { userId: user._id, email: user.email, username: user.username, phone: user.phone },
         process.env.JWT_SECRET,
-        { expiresIn: '7d' }
+        { expiresIn: '30d' }
       );
 
       // Case: new user with phone
@@ -186,7 +186,7 @@ export async function GET(req) {
         secure: process.env.NODE_ENV === "production",
         sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
         path: '/',
-        maxAge: 60 * 60 * 24 * 7, // 7 days
+        maxAge: 60 * 60 * 24 * 30, // 30 days
       });
       return res;
   }
@@ -197,7 +197,7 @@ export async function GET(req) {
     const token = jwt.sign(
       { userId: user._id, email: user.email, username: user.username, phone: user.phone },
       process.env.JWT_SECRET,
-      { expiresIn: '7d' }
+      { expiresIn: '30d' }
     );
 
     // Step 5: Create response + set cookie and redirect to frontend
@@ -210,7 +210,7 @@ export async function GET(req) {
       secure: process.env.NODE_ENV === "production", // only secure in prod
       sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
       path: '/',
-      maxAge: 60 * 60 * 24 * 7, // 7 days
+      maxAge: 60 * 60 * 24 * 30, // 30 days
     });
 
     return res;
