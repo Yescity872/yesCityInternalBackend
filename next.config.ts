@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: 'Access-Control-Allow-Origin',
-            value: `${process.env.FRONTEND_URL}`,
+            value: `${process.env.FRONTEND_URL || 'http://localhost:3000'}`,
           },
           {
             key: 'Access-Control-Allow-Methods',
@@ -23,6 +23,14 @@ const nextConfig: NextConfig = {
             value: 'true',
           },
         ],
+      },
+    ];
+  },
+  async rewrites() {
+    return [
+      {
+        source: '/backend/:path*',
+        destination: 'http://localhost:3001/:path*',
       },
     ];
   },

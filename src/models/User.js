@@ -74,6 +74,7 @@ const userSchema = new mongoose.Schema({
           'NearbySpot',
           'Place',
           'Shop',
+          'festivals'
         ],
       },
     },

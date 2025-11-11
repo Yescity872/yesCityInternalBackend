@@ -10,7 +10,7 @@ export async function GET(req, { params }) {
   try {
     await connectToDatabase();
 
-    const { id } = params;
+    const { id } =await params;
     const identifier = decodeURIComponent(id);
 
     let festival;
