@@ -6,7 +6,6 @@ const userSchema = new mongoose.Schema({
     required: true,
   isPhoneVerified: { type: Boolean, default: false },
 
-  // ✅ Wishlist
     unique: true,
   },
   username: {
@@ -58,7 +57,6 @@ const userSchema = new mongoose.Schema({
   },
   isPhoneVerified: { type: Boolean, default: false },
 
-  // ✅ Wishlist
   wishlist: [
     {
       cityName: { type: String, required: true },
@@ -129,7 +127,6 @@ const userSchema = new mongoose.Schema({
   resetTokenExpiry: Date,
 });
 
-// ✅ Compound index for wishlist uniqueness
 userSchema.index(
   { _id: 1, 'wishlist.parentRef': 1, 'wishlist.onModel': 1 },
   { unique: true, sparse: true }
