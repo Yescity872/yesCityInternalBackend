@@ -13,27 +13,27 @@ import Shop from '@/models/CityRoutes/Shop';
 const CATEGORY_CONFIG = {
   Accommodation: {
     model: Accommodation,
-    fields: '_id cityName flagship hotels roomTypes images premium lat lon',
+    fields: '_id cityName flagship hotels roomTypes images premium lat lon locationLink',
   },
   Food: {
     model: Food,
-    fields: '_id cityName flagship foodPlace vegOrNonVeg menuSpecial images premium lat lon',
+    fields: '_id cityName flagship foodPlace vegOrNonVeg menuSpecial images premium lat lon locationLink',
   },
   HiddenGem: {
     model: HiddenGem,
-    fields: '_id cityName hiddenGem images premium lat lon',
+    fields: '_id cityName hiddenGem images premium lat lon locationLink',
   },
   NearbySpot: {
     model: NearbySpot,
-    fields: '_id cityName places description images premium lat lon',
+    fields: '_id cityName places description images premium lat lon locationLink',
   },
   Place: {
     model: Place,
-    fields: '_id cityName places establishYear description images premium lat lon',
+    fields: '_id cityName places establishYear description images premium lat lon locationLink',
   },
   Shop: {
     model: Shop,
-    fields: '_id cityName flagship shops famousFor images premium lat lon',
+    fields: '_id cityName flagship shops famousFor images premium lat lon locationLink',
   },
 };
 

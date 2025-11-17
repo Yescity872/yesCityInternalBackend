@@ -6,7 +6,6 @@ const userSchema = new mongoose.Schema({
     required: true,
   isPhoneVerified: { type: Boolean, default: false },
 
-  // ✅ Wishlist
     unique: true,
   },
   username: {
@@ -58,7 +57,7 @@ const userSchema = new mongoose.Schema({
   },
   isPhoneVerified: { type: Boolean, default: false },
 
-  // ✅ Wishlist
+  // Wishlist
   wishlist: [
     {
       cityName: { type: String, required: true },
