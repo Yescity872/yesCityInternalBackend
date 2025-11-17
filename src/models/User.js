@@ -57,6 +57,7 @@ const userSchema = new mongoose.Schema({
   },
   isPhoneVerified: { type: Boolean, default: false },
 
+  // Wishlist
   wishlist: [
     {
       cityName: { type: String, required: true },

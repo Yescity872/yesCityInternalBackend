@@ -21,6 +21,7 @@
     "mongoose": "^8.16.4",
     "next": "15.4.3",
     "nodemailer": "^6.10.1",
+    "pdf-lib": "^1.17.1",
     "pusher": "^5.2.0",
     "pusher-js": "^8.4.0",
     "razorpay": "^2.9.6",
