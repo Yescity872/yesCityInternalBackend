@@ -19,7 +19,7 @@
     "firebase-admin": "^13.5.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.16.4",
-    "next": "15.4.3",
+    "next": "15.4.10",
     "nodemailer": "^6.10.1",
     "pdf-lib": "^1.17.1",
     "pusher": "^5.2.0",
