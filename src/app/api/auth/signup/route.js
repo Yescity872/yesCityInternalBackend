@@ -3,8 +3,8 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { connectToDatabase } from '@/lib/db';
 import User from '@/models/User';
+import OTPVerification from '@/models/OTPVerification';
 import { extendUserPremium } from "@/lib/extendPremium";
-import { firebaseAdmin } from '@/lib/firebaseAdmin';
 
 export async function POST(req) {
   let body;
@@ -15,131 +15,130 @@ export async function POST(req) {
     return NextResponse.json({ message: 'Invalid JSON body' }, { status: 400 });
   }
 
-  const { username, email, password, phone, referredBy, profileImage, firebaseIdToken } = body;
+  const { username, email, password, emailOTP, referredBy, profileImage } = body;
 
-  if (!username || !email || !password || !phone) {
+  // Basic validation
+  if (!username || !email || !password || !emailOTP) {
     return NextResponse.json(
-      { message: 'All fields are required (including phone)' },
+      { message: 'Username, email, password, and OTP are required' },
       { status: 400 }
-    );
-  }
-
-
-    if (!firebaseIdToken) {
-    return NextResponse.json(
-      { message: 'Missing phone verification token' },
-      { status: 401 }
-    );
-  }
-  
-  let decoded;
-  try {
-    decoded = await firebaseAdmin.auth().verifyIdToken(firebaseIdToken, true);
-  } catch (err) {
-    console.error('Firebase token verification failed', err);
-    return NextResponse.json(
-      { message: 'Invalid or expired phone verification token' },
-      { status: 401 }
-    );
-  }
-  
-  const firebasePhone = decoded.phone_number?.replace(/^\+91/, ''); // adjust formatting
-  if (!firebasePhone || firebasePhone !== phone) {
-    return NextResponse.json(
-      { message: 'Phone number mismatch; please verify again.' },
-      { status: 403 }
     );
   }
 
   await connectToDatabase();
 
   try {
-    // Check duplicates
-    if (await User.findOne({ email })) {
-      return NextResponse.json({ message: 'Email already in use' }, { status: 409 });
+    // Check if email is already registered and verified
+    const verifiedUser = await User.findOne({ email, isEmailVerified: true });
+    
+    if (verifiedUser) {
+      return NextResponse.json(
+        { message: 'Email already registered' },
+        { status: 409 }
+      );
     }
-    if (await User.findOne({ phone })) {
-      return NextResponse.json({ message: 'Phone number already in use' }, { status: 409 });
+
+    // Check if username is already taken
+    const existingUsername = await User.findOne({ username });
+    if (existingUsername) {
+      return NextResponse.json(
+        { message: 'Username already taken' },
+        { status: 409 }
+      );
     }
 
+    // Find the temporary OTP record (stored separately, not as a user)
+    const OTPRecord = await OTPVerification.findOne({ 
+      email, 
+      otp: emailOTP,
+      expiresAt: { $gt: new Date() } // Not expired
+    });
 
-  if (referredBy) {
-    const refUser = await User.findOne({ referralCode: referredBy });
-    if (refUser) {
-      refUser.referralCount += 1;
+    if (!OTPRecord) {
+      return NextResponse.json(
+        { message: 'Invalid or expired OTP' },
+        { status: 401 }
+      );
+    }
 
-      // --- Apply monthly contribution points cap (90) ---
-      const now = new Date();
-      const currentMonth = now.getMonth();
-      const currentYear = now.getFullYear();
-      const storedMonth = refUser.pointsMonth?.getMonth();
-      const storedYear = refUser.pointsMonth?.getFullYear();
+    // OTP is valid, handle referral logic
+    if (referredBy) {
+      const refUser = await User.findOne({ referralCode: referredBy });
+      if (refUser) {
+        refUser.referralCount += 1;
 
-      // Reset if new month
-      if (storedMonth !== currentMonth || storedYear !== currentYear) {
-        refUser.monthlyPoints = 0;
-        refUser.pointsMonth = now;
-      }
+        // Apply monthly contribution points cap (90)
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+        const storedMonth = refUser.pointsMonth?.getMonth();
+        const storedYear = refUser.pointsMonth?.getFullYear();
 
-      // Add points with cap
-      if (refUser.monthlyPoints < 90) {
-        const available = 90 - refUser.monthlyPoints;
-        const addedPoints = Math.min(5, available);
+        // Reset if new month
+        if (storedMonth !== currentMonth || storedYear !== currentYear) {
+          refUser.monthlyPoints = 0;
+          refUser.pointsMonth = now;
+        }
 
-        refUser.monthlyPoints += addedPoints;
-        refUser.contributionPoints += addedPoints;
-      }
-      // --- end cap logic ---
+        // Add points with cap
+        if (refUser.monthlyPoints < 90) {
+          const available = 90 - refUser.monthlyPoints;
+          const addedPoints = Math.min(5, available);
 
-      await refUser.save();
-      console.log(referredBy);
+          refUser.monthlyPoints += addedPoints;
+          refUser.contributionPoints += addedPoints;
+        }
 
-      try {
-        await extendUserPremium(referredBy); // ✅ still send referralCode directly
-      } catch (err) {
-        console.error("Failed to extend referrer premium:", err);
+        await refUser.save();
+
+        try {
+          await extendUserPremium(referredBy);
+        } catch (err) {
+          console.error("Failed to extend referrer premium:", err);
+        }
       }
     }
-  }
-
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    // Create user
+    // Generate unique referral code
+    const referralCode = email.split('@')[0] + Math.random().toString(36).substring(2, 8);
+
+    // NOW create the verified user (ONLY after OTP verification)
     const user = await User.create({
       username,
       email,
       password: hashedPassword,
-      phone,
-      referralCode: phone,
-      isPhoneVerified: true,
-      referredBy: referredBy,
-      profileImage,
+      referralCode,
+      isEmailVerified: true, // Already verified via OTP
+      referredBy: referredBy || undefined,
+      profileImage: profileImage || undefined,
       isPremium: 'FREE',
-      contributionPoints: 2, // ✅ initialize with 0
-      monthlyPoints: 2, // initialize monthly points
+      contributionPoints: 2,
+      monthlyPoints: 2,
     });
 
+    // Delete the OTP record after successful verification
+    await OTPVerification.deleteOne({ _id: OTPRecord._id });
 
     // Sign JWT
     const token = jwt.sign(
-      { userId: user._id, email: user.email, phone: user.phone },
+      { userId: user._id, email: user.email },
       process.env.JWT_SECRET,
       { expiresIn: '30d' }
     );
 
-    // Return response (without token in body)
-    const response =  NextResponse.json(
+    // Return response
+    const response = NextResponse.json(
       {
-  success: true,
+        success: true,
         message: 'User registered and logged in successfully',
         token,
         user: {
           id: user._id,
           username: user.username,
           email: user.email,
-          phone: user.phone,
           referralCode: user.referralCode,
           referredBy: user.referredBy,
           isPremium: user.isPremium,
@@ -147,7 +146,8 @@ export async function POST(req) {
       },
       { status: 201 }
     );
-        //  set cookie on the response
+
+    // Set cookie
     response.cookies.set({
       name: 'token',
       value: token,
@@ -162,6 +162,9 @@ export async function POST(req) {
     
   } catch (err) {
     console.error('Signup error:', err);
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { message: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }
