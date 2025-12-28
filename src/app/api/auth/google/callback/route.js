@@ -4,18 +4,16 @@ import jwt from 'jsonwebtoken';
 import User from '@/models/User';
 import { connectToDatabase } from '@/lib/db';
 import { extendUserPremium } from "@/lib/extendPremium";
-import { firebaseAdmin } from "@/lib/firebaseAdmin";
-
 
 export async function GET(req) {
   const { searchParams } = new URL(req.url);
   const code = searchParams.get('code');
   const state = searchParams.get('state');
 
+  // Handle OAuth error (user cancelled)
   const error = searchParams.get('error');
   if (error) {
     console.error('Google OAuth Error:', error);
-    // Redirect the user back to your frontend's login page with a status message
     const redirectUrl = `${process.env.FRONTEND_URL}/login?status=cancelled`;
     return NextResponse.redirect(redirectUrl);
   }
@@ -24,44 +22,14 @@ export async function GET(req) {
     return NextResponse.json({ message: 'Authorization code missing' }, { status: 400 });
   }
 
-  // Retrieve phone and referredBy from state (sent back by Google)
-  let phone, referredBy, firebaseIdToken, isLogin;
+  // Retrieve referredBy from state (sent back by Google)
+  let referredBy;
   try {
     const parsedState = JSON.parse(state || '{}');
-    phone = parsedState.phone;
     referredBy = parsedState.referredBy;
-    firebaseIdToken = parsedState.firebaseIdToken;
-    isLogin = parsedState.isLogin; // Check if this is a login flow
   } catch (error) {
     console.error('Error parsing state:', error);
-    phone = null;
     referredBy = null;
-    firebaseIdToken = null;
-    isLogin = false;
-  }
-
-  // For login flow (existing users), skip phone verification requirement
-  if (!isLogin && (!phone || !firebaseIdToken)) {
-    const redirectUrl = `${process.env.FRONTEND_URL}/signup?error=missing_phone_token`;
-    return NextResponse.redirect(redirectUrl);
-  }
-
-  // Only verify Firebase token if it's provided (signup flow)
-  if (firebaseIdToken) {
-    let decodedToken;
-    try {
-      decodedToken = await firebaseAdmin.auth().verifyIdToken(firebaseIdToken, true);
-    } catch (error) {
-      console.error('Firebase token verification failed:', error);
-      const redirectUrl = `${process.env.FRONTEND_URL}/signup?error=invalid_phone_token`;
-      return NextResponse.redirect(redirectUrl);
-    }
-
-    const firebasePhone = decodedToken.phone_number?.replace(/^\+91/, '');
-    if (!firebasePhone || firebasePhone !== phone) {
-      const redirectUrl = `${process.env.FRONTEND_URL}/signup?error=phone_mismatch`;
-      return NextResponse.redirect(redirectUrl);
-    }
   }
 
   try {
@@ -86,7 +54,7 @@ export async function GET(req) {
       return NextResponse.json({ message: 'Failed to get access token' }, { status: 400 });
     }
 
-    // Step 2: Fetch user profile
+    // Step 2: Fetch user profile from Google
     const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
@@ -105,21 +73,17 @@ export async function GET(req) {
       $or: [{ email: profile.email }, { googleId: profile.id }],
     });
 
-   if (!user) {
-    // User doesn't exist - this is a signup flow
-    if (!phone) {
-      // 🚨 Case: user doesn't exist AND no phone provided
-      const redirectUrl = `${process.env.FRONTEND_URL}/signup?error=missing_phone`;
-      return NextResponse.redirect(redirectUrl);
-    }
+    if (!user) {
+      //  NEW USER - Create account with Google OAuth
+      console.log('Creating new user via Google OAuth');
 
-    // ✅ Normal signup with phone
-    if (referredBy) {
+      // Handle referral logic
+      if (referredBy) {
         const refUser = await User.findOne({ referralCode: referredBy });
         if (refUser) {
           refUser.referralCount += 1;
 
-          // --- Apply monthly contribution points cap (90) ---
+          // Apply monthly contribution points cap (90)
           const now = new Date();
           const currentMonth = now.getMonth();
           const currentYear = now.getFullYear();
@@ -140,75 +104,78 @@ export async function GET(req) {
             refUser.monthlyPoints += addedPoints;
             refUser.contributionPoints += addedPoints;
           }
-          // --- end cap logic ---
 
           await refUser.save();
-          console.log(referredBy);
+          console.log('🎁 Referral code applied:', referredBy);
 
           try {
-            await extendUserPremium(referredBy); // ✅ still send referralCode directly
+            await extendUserPremium(referredBy);
           } catch (err) {
             console.error("Failed to extend referrer premium:", err);
           }
         }
       }
 
-      const newReferralCode = phone;
+      // Generate unique referral code from email
+      const referralCode = profile.email.split('@')[0] + Math.random().toString(36).substring(2, 8);
 
+      // Generate unique username if needed
+      let username = profile.name.replace(/\s+/g, '_').toLowerCase();
+      const existingUsername = await User.findOne({ username });
+      if (existingUsername) {
+        username = username + Math.random().toString(36).substring(2, 6);
+      }
+
+      // Create new user
       user = await User.create({
-        username: profile.name,
+        username,
         email: profile.email,
         profileImage: profile.picture,
         googleId: profile.id,
-        phone,
-        isPhoneVerified: true,
+        isEmailVerified: true, // ✅ Google emails are pre-verified
         contributionPoints: 2,
         monthlyPoints: 2,
-        referredBy,
-        referralCode: newReferralCode,
-        password: '',
+        referredBy: referredBy || undefined,
+        referralCode,
+        isPremium: 'FREE',
       });
 
-      // Generate JWT for new user
-      const token = jwt.sign(
-        { userId: user._id, email: user.email, username: user.username, phone: user.phone },
-        process.env.JWT_SECRET,
-        { expiresIn: '30d' }
-      );
+      console.log('New user created:', user.email);
+    } else {
+      //  EXISTING USER - Login
+      console.log(' Existing user logging in:', user.email);
 
-      // Case: new user with phone
-      const redirectUrl = `${process.env.FRONTEND_URL}/?googleCheck=true&token=${token}`;
-      const res = NextResponse.redirect(redirectUrl);
-      res.cookies.set({
-        name: 'token',
-        value: token,
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-        path: '/',
-        maxAge: 60 * 60 * 24 * 30, // 30 days
-      });
-      return res;
-  }
+      // Update last active timestamp
+      user.lastActive = new Date();
+      await user.save();
+    }
 
-    // User exists - this is a login flow
-    // User exists - this is a login flow
-    // Generate JWT for existing user
+    // Step 4: Generate JWT token
     const token = jwt.sign(
-      { userId: user._id, email: user.email, username: user.username, phone: user.phone },
+      { 
+        userId: user._id, 
+        email: user.email, 
+        username: user.username,
+        isPremium: user.isPremium 
+      },
       process.env.JWT_SECRET,
       { expiresIn: '30d' }
     );
 
-    // Step 5: Create response + set cookie and redirect to frontend
-    const redirectUrl = `${process.env.FRONTEND_URL}/?token=${token}`;
-    const res =  NextResponse.redirect(redirectUrl);
+    // Step 5: Redirect to frontend with token
+    const redirectUrl = user.isNew 
+      ? `${process.env.FRONTEND_URL}/?googleCheck=true&token=${token}`
+      : `${process.env.FRONTEND_URL}/?token=${token}`;
+    
+    const res = NextResponse.redirect(redirectUrl);
+    
+    // Set HTTP-only cookie
     res.cookies.set({
       name: 'token',
       value: token,
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production", // only secure in prod
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       path: '/',
       maxAge: 60 * 60 * 24 * 30, // 30 days
     });
@@ -217,9 +184,7 @@ export async function GET(req) {
 
   } catch (error) {
     console.error('Google OAuth callback error:', error);
-    return NextResponse.json(
-      { message: 'Internal server error during Google authentication' },
-      { status: 500 }
-    );
+    const redirectUrl = `${process.env.FRONTEND_URL}/login?error=auth_failed`;
+    return NextResponse.redirect(redirectUrl);
   }
 }

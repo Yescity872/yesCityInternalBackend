@@ -41,7 +41,6 @@ export async function GET(req) {
       user: {
         id: user._id,
         email: user.email,
-        phone: user.phone,
         isPremium: user.isPremium,
         premiumStartDate: user.premiumStartDate,
         premiumExpiryDate: user.premiumExpiryDate,

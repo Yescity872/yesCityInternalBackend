@@ -4,10 +4,12 @@ const userSchema = new mongoose.Schema({
   email: {
     type: String,
     required: true,
-  isPhoneVerified: { type: Boolean, default: false },
-
     unique: true,
   },
+  // emailOTP: String,
+  // emailOTPExpiry: Date,
+  isEmailVerified: { type: Boolean, default: false },
+
   username: {
     type: String,
     required: true,
@@ -52,10 +54,9 @@ const userSchema = new mongoose.Schema({
 
   phone: {
     type: String,
-    required: true,
-    unique: true,
   },
-  isPhoneVerified: { type: Boolean, default: false },
+  // isPhoneVerified: { type: Boolean, default: false },
+
 
   // Wishlist
   wishlist: [
