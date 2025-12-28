@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/db';
 import User from '@/models/User';
-import OTPVerification from '@/models/OTPVerification';
-import { sendOTPEmail } from '@/lib/sendOTPEmail';
+import ForgotPasswordOTP from '@/models/ForgotPasswordOTP';
+import { sendOTPEmail } from '@/lib/forgotPasswordEmail.js';
 
 export async function POST(req) {
   let body;
@@ -33,13 +33,13 @@ export async function POST(req) {
   await connectToDatabase();
 
   try {
-    // Check if email already exists and is verified
-    const existingUser = await User.findOne({ email, isEmailVerified: true });
+    // Check if user exists with this email and is verified
+    const existingUser = await User.findOne({ email: email.toLowerCase(), isEmailVerified: true });
     
     if (!existingUser) {
       return NextResponse.json(
-        { message: 'Incorrect email or Email not registered' },
-        { status: 409 }
+        { message: 'No account found with this email address' },
+        { status: 404 }
       );
     }
 
@@ -47,14 +47,15 @@ export async function POST(req) {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-    // Delete any existing OTP for this email
-    await OTPVerification.deleteMany({ email });
+    // Delete any existing OTP for this email (for forgot password)
+    await ForgotPasswordOTP.deleteMany({ email: email.toLowerCase() });
 
-    // Store OTP in separate collection
-    await OTPVerification.create({
-      email,
+    // Store OTP in ForgotPasswordOTP collection
+    await ForgotPasswordOTP.create({
+      email: email.toLowerCase(),
       otp,
       expiresAt,
+      isVerified: false,
     });
 
     // Send OTP email
@@ -71,7 +72,7 @@ export async function POST(req) {
   } catch (err) {
     console.error('Send OTP error:', err);
     return NextResponse.json(
-      { message: 'Failed to send OTP' },
+      { message: 'Failed to send OTP. Please try again.' },
       { status: 500 }
     );
   }
