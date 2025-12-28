@@ -4,8 +4,6 @@ const userSchema = new mongoose.Schema({
   email: {
     type: String,
     required: true,
-    isPhoneVerified: { type: Boolean, default: false },
-
     unique: true,
   },
   // emailOTP: String,
@@ -54,11 +52,9 @@ const userSchema = new mongoose.Schema({
   
   firstProfile: { type: Boolean, default: false },
 
-  // phone: {
-  //   type: String,
-  //   required: true,
-  //   unique: true,
-  // },
+  phone: {
+    type: String,
+  },
   // isPhoneVerified: { type: Boolean, default: false },
 
 

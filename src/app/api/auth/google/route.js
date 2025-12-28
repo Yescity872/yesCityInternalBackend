@@ -5,14 +5,13 @@ export async function GET(req) {
   const { searchParams } = new URL(req.url);
   const state = searchParams.get('state');
 
-  let referredBy, isLogin;
+  let referredBy;
   
   // Parse state if provided (optional for Google OAuth)
   if (state) {
     try {
       const parsedState = JSON.parse(state);
       referredBy = parsedState.referredBy;
-      isLogin = parsedState.isLogin;
     } catch (error) {
       console.error('Error parsing state:', error);
       // Continue anyway - state is optional
@@ -32,10 +31,9 @@ export async function GET(req) {
   oauthURL.searchParams.set('prompt', 'consent');
   
   // Pass state only if we have referral or login flag
-  if (referredBy || isLogin) {
+  if (referredBy) {
     oauthURL.searchParams.set('state', JSON.stringify({ 
       referredBy: referredBy || null,
-      isLogin: isLogin || false,
     }));
   }
 
@@ -43,7 +41,6 @@ export async function GET(req) {
   console.log("🔍 redirect_uri being sent:", REDIRECT_URI);
   console.log("🔍 Full Google OAuth URL:", oauthURL.toString());
   if (referredBy) console.log("🎁 Referral code:", referredBy);
-  console.log("🔐 Login mode:", isLogin ? "Yes" : "No");
 
   return NextResponse.redirect(oauthURL.toString());
 }

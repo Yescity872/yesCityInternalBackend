@@ -23,15 +23,13 @@ export async function GET(req) {
   }
 
   // Retrieve referredBy from state (sent back by Google)
-  let referredBy, isLogin;
+  let referredBy;
   try {
     const parsedState = JSON.parse(state || '{}');
     referredBy = parsedState.referredBy;
-    isLogin = parsedState.isLogin;
   } catch (error) {
     console.error('Error parsing state:', error);
     referredBy = null;
-    isLogin = false;
   }
 
   try {
