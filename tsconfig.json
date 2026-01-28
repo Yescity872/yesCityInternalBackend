@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "src/app/api/cities/route.js", "src/app/api/profile/route.js", "src/app/api/user/wishlist/route.js", "src/middleware/auth.js", "src/app/api/city/[cityName]/accommodation/route.js", "src/app/api/city/[cityName]/activity/route.js", "src/app/api/city/[cityName]/cityInfo/route.js", "src/app/api/contribution/route.js", "src/app/api/city/[cityName]/food/route.js", "src/app/api/city/[cityName]/hiddenGem/route.js", "src/app/api/city/[cityName]/connectivity/route.js", "src/app/api/city/[cityName]/itinerary/route.js", "src/app/api/city/[cityName]/misc/route.js", "src/app/api/city/[cityName]/nearbySpot/route.js", "src/app/api/city/[cityName]/place/route.js", "src/app/api/city/[cityName]/shop/route.js", "src/app/api/city/[cityName]/transport/route.js", "src/app/api/auth/signup/route.js", "src/app/api/auth/login/route.js"],
+  "exclude": ["node_modules"]
+}
