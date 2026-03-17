@@ -23,8 +23,30 @@ async function coreHandler(req, context, user = null) {
 
     // const accessiblePremiums = getAccessiblePremiums(userPremium);
 
-    // ✅ Get query params for pagination
+    // ✅ Get query params
     const { searchParams } = new URL(req.url);
+    const idsParam = searchParams.get('ids');
+
+    if (idsParam) {
+      const ids = idsParam.split(',').map((id) => id.trim()).filter(Boolean);
+
+      const activities = await Activity.find({
+        _id: { $in: ids },
+        cityName: { $regex: new RegExp(`^${formattedCityName}$`, 'i') },
+      }).select('_id cityName topActivities images premium');
+
+      if (!activities.length) {
+        return NextResponse.json({ error: 'No activities found for the given IDs' }, { status: 404 });
+      }
+
+      if (user) {
+        await recordCategoryEngagement(user, formattedCityName, "Activity");
+      }
+
+      return NextResponse.json({ data: activities });
+    }
+
+    // ✅ Default: paginated fetch
     const page = parseInt(searchParams.get('page') || '1', 10);
     const limit = 5;
     const skip = (page - 1) * limit;
@@ -74,11 +96,12 @@ import { getUserFromCookies } from "@/middleware/auth"; // import the helper
 export async function GET(req, context) {
   const { searchParams } = new URL(req.url);
   const page = parseInt(searchParams.get("page") || "1", 10);
+  const idsParam = searchParams.get("ids");
 
-  if (page === 1) {
+  if (idsParam || page === 1) {
     // ✅ Try to get user (if logged in)
     const user = await getUserFromCookies();
-    return coreHandler(req, context, user); // pass user if found, else null
+    return coreHandler(req, context, user);
   }
 
   // ✅ Page > 1 always requires auth

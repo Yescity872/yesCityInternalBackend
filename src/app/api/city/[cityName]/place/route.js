@@ -24,8 +24,30 @@ async function coreHandler(req, context, user = null) {
 
     // const accessiblePremiums = getAccessiblePremiums(userPremium);
 
-    // ✅ Pagination
+    // ✅ Get query params
     const { searchParams } = new URL(req.url);
+    const idsParam = searchParams.get('ids');
+
+    if (idsParam) {
+      const ids = idsParam.split(',').map((id) => id.trim()).filter(Boolean);
+
+      const places = await Place.find({
+        _id: { $in: ids },
+        cityName: { $regex: new RegExp(`^${formattedCityName}$`, 'i') },
+      }).select('_id cityName places establishYear description images premium');
+
+      if (!places.length) {
+        return NextResponse.json({ error: 'No places found for the given IDs' }, { status: 404 });
+      }
+
+      if (user) {
+        await recordCategoryEngagement(user, formattedCityName, "Place");
+      }        
+
+      return NextResponse.json({ data: places });
+    }
+
+    // ✅ Normal paginated fetch
     const page = parseInt(searchParams.get('page') || '1', 10);
     const limit = 5;
     const skip = (page - 1) * limit;
@@ -71,18 +93,15 @@ async function coreHandler(req, context, user = null) {
 
 
 
-// ✅ Public entrypoint
-// ✅ Public for page=1, Auth required for page>1
-import { getUserFromCookies } from "@/middleware/auth"; // import the helper
-
 export async function GET(req, context) {
   const { searchParams } = new URL(req.url);
   const page = parseInt(searchParams.get("page") || "1", 10);
+  const idsParam = searchParams.get("ids");
 
-  if (page === 1) {
+  if (idsParam || page === 1) {
     // ✅ Try to get user (if logged in)
     const user = await getUserFromCookies();
-    return coreHandler(req, context, user); // pass user if found, else null
+    return coreHandler(req, context, user);
   }
 
   // ✅ Page > 1 always requires auth

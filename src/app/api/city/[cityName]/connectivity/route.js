@@ -12,8 +12,41 @@ async function coreHandler(req, context, user = null) {
     const { cityName } = await context.params;
     const formattedCityName = decodeURIComponent(cityName).toLowerCase();
 
-    // ✅ Pagination
+    // ✅ Pagination and query params
     const { searchParams } = new URL(req.url);
+    const idsParam = searchParams.get('ids');
+
+    if (idsParam) {
+      const ids = idsParam.split(',').map((id) => id.trim()).filter(Boolean);
+      
+      const connectivityRecords = await Connectivity.find({
+        _id: { $in: ids },
+        cityName: { $regex: new RegExp(`^${formattedCityName}$`, 'i') },
+        nearestAirportStationBusStand: { $exists: true, $nin: [null, ''] },
+        distance: { $exists: true, $nin: [null, ''] },
+      })
+        .select('_id cityName nearestAirportStationBusStand distance premium')
+        .lean();
+
+      // Additional filter for whitespace-only strings
+      const filteredRecords = connectivityRecords.filter(record => 
+        record.nearestAirportStationBusStand?.trim() && 
+        record.distance?.trim()
+      );
+
+      if (!filteredRecords.length) {
+        return NextResponse.json({ error: 'No connectivity data found for the given IDs' }, { status: 404 });
+      }
+
+      // ✅ Record engagement
+      if (user) {
+        await recordCategoryEngagement(user, formattedCityName, "Connectivity");
+      }
+
+      return NextResponse.json({ data: filteredRecords });
+    }
+
+    // ✅ Normal paginated fetch
     const page = Number.parseInt(searchParams.get('page') || '1', 10);
     const limit = 5;
     const skip = (page - 1) * limit;
@@ -66,12 +99,12 @@ async function coreHandler(req, context, user = null) {
   }
 }
 
-// ✅ Public for page=1, Auth required for page>1
 export async function GET(req, context) {
   const { searchParams } = new URL(req.url);
   const page = Number.parseInt(searchParams.get("page") || "1", 10);
+  const idsParam = searchParams.get("ids");
 
-  if (page === 1) {
+  if (idsParam || page === 1) {
     // ✅ Try to get user (if logged in)
     const user = await getUserFromCookies();
     return coreHandler(req, context, user);
