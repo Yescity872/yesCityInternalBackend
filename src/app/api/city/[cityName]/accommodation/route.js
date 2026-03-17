@@ -95,13 +95,13 @@ export async function GET(req, context) {
   const page = parseInt(searchParams.get("page") || "1", 10);
   const idsParam = searchParams.get("ids");
 
-  // ✅ If IDs are passed OR it's page 1, try optional auth
+  //  If IDs are passed OR it's page 1, try optional auth
   if (idsParam || page === 1) {
     const user = await getUserFromCookies();
     return coreHandler(req, context, user);
   }
 
-  // ✅ Page > 1 always requires auth
+  //  Page > 1 always requires auth
   return withAuth(async (reqWithAuth, contextWithAuth) => {
     return coreHandler(reqWithAuth, contextWithAuth, reqWithAuth.user);
   })(req, context);
