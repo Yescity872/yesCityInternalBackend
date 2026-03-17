@@ -23,7 +23,7 @@ async function handler(req, context) {
     const userPremium = user?.isPremium || "FREE";
     const accessiblePremiums = getAccessiblePremiums(userPremium);
 
-    // ✅ Step 1: find the document
+    // Step 1: find the document
     const accommodation = await Accommodation.findOne({
       _id: id,
       cityName: { $regex: new RegExp(`^${cityName}$`, "i") },
@@ -37,10 +37,10 @@ async function handler(req, context) {
       );
     }
 
-    // ✅ Step 2: increment views
+    // Step 2: increment views
     accommodation.engagement.views += 1;
 
-    // ✅ Step 3: update viewedBy
+    // Step 3: update viewedBy
     const viewedEntry = accommodation.engagement.viewedBy.find(
       (v) => v.userId.toString() === userId.toString()
     );

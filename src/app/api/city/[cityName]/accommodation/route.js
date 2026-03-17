@@ -21,13 +21,35 @@ async function coreHandler(req, context, user = null) {
 
     // const accessiblePremiums = getAccessiblePremiums(userPremium);
 
-    // ✅ Get query params for pagination
+    // ✅ Get query params
     const { searchParams } = new URL(req.url);
+    const idsParam = searchParams.get('ids');
+
+    // ✅ If specific IDs are requested, fetch only those (no pagination)
+    if (idsParam) {
+      const ids = idsParam.split(',').map((id) => id.trim()).filter(Boolean);
+
+      const accommodations = await Accommodation.find({
+        _id: { $in: ids },
+        cityName: { $regex: new RegExp(`^${formattedCityName}$`, 'i') },
+      }).select('_id cityName flagship hotels roomTypes images premium');
+
+      if (!accommodations.length) {
+        return NextResponse.json({ error: 'No accommodations found for the given IDs' }, { status: 404 });
+      }
+
+      if (user) {
+        await recordCategoryEngagement(user, formattedCityName, "Accommodation");
+      }
+
+      return NextResponse.json({ data: accommodations });
+    }
+
+    // ✅ Default: paginated fetch
     const page = parseInt(searchParams.get('page') || '1', 10);
     const limit = 5;
     const skip = (page - 1) * limit;
 
-    // ✅ Find accommodations with pagination
     const accommodations = await Accommodation.find({
       cityName: { $regex: new RegExp(`^${formattedCityName}$`, 'i') },
       // premium: { $in: accessiblePremiums },
@@ -71,11 +93,12 @@ import { getUserFromCookies } from "@/middleware/auth"; // import the helper
 export async function GET(req, context) {
   const { searchParams } = new URL(req.url);
   const page = parseInt(searchParams.get("page") || "1", 10);
+  const idsParam = searchParams.get("ids");
 
-  if (page === 1) {
-    // ✅ Try to get user (if logged in)
+  // ✅ If IDs are passed OR it's page 1, try optional auth
+  if (idsParam || page === 1) {
     const user = await getUserFromCookies();
-    return coreHandler(req, context, user); // pass user if found, else null
+    return coreHandler(req, context, user);
   }
 
   // ✅ Page > 1 always requires auth
