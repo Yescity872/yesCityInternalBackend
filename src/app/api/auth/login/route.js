@@ -29,6 +29,14 @@ export async function POST(req) {
       return NextResponse.json({ message: 'Invalid credentials' }, { status: 401 });
     }
 
+    // Users registered via Google Auth will not have a password
+    if (!user.password) {
+      return NextResponse.json(
+        { message: 'This account was created with Google. Please sign in with Google.' },
+        { status: 400 }
+      );
+    }
+
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return NextResponse.json({ message: 'Invalid credentials' }, { status: 401 });
