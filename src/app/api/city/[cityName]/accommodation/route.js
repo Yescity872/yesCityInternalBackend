@@ -101,7 +101,7 @@ export async function GET(req, context) {
     return coreHandler(req, context, user);
   }
 
-  //  Page > 1 always requires auth
+  // Page > 1 always requires auth
   return withAuth(async (reqWithAuth, contextWithAuth) => {
     return coreHandler(reqWithAuth, contextWithAuth, reqWithAuth.user);
   })(req, context);
