@@ -3,12 +3,6 @@ import Razorpay from 'razorpay';
 import { withAuth } from '@/middleware/auth';
 import { connectToDatabase } from '@/lib/db';
 
-// Initialize Razorpay
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET,
-});
-
 // Premium pricing constants
 const PREMIUM_PRICING = {
   A: 499,   // Gold - 3 Months - ₹499
@@ -53,6 +47,13 @@ async function handler(req) {
     const price = PREMIUM_PRICING[premiumType];
     const amount = price * 100; // Convert to paise
     const receipt = generateReceipt(userId, premiumType);
+    
+    // Initialize Razorpay
+    const razorpay = new Razorpay({
+      key_id: process.env.RAZORPAY_KEY_ID,
+      key_secret: process.env.RAZORPAY_KEY_SECRET,
+    });
+
     // Create Razorpay order
     const options = {
       amount: amount,
