@@ -22,11 +22,18 @@ export async function GET(req) {
     return NextResponse.json({ message: 'Authorization code missing' }, { status: 400 });
   }
 
-  // Retrieve referredBy from state (sent back by Google)
+  // Retrieve state data (sent back by Google)
   let referredBy;
+  let redirectTo = '/';
   try {
     const parsedState = JSON.parse(state || '{}');
     referredBy = parsedState.referredBy;
+    redirectTo = parsedState.redirect || '/';
+    
+    // Ensure redirectTo starts with / if it doesn't already
+    if (redirectTo && !redirectTo.startsWith('/') && !redirectTo.startsWith('http')) {
+      redirectTo = `/${redirectTo}`;
+    }
   } catch (error) {
     console.error('Error parsing state:', error);
     referredBy = null;
@@ -163,9 +170,10 @@ export async function GET(req) {
     );
 
     // Step 5: Redirect to frontend with token
+    const separator = redirectTo.includes('?') ? '&' : '?';
     const redirectUrl = user.isNew 
-      ? `${process.env.FRONTEND_URL}/?googleCheck=true&token=${token}`
-      : `${process.env.FRONTEND_URL}/?token=${token}`;
+      ? `${process.env.FRONTEND_URL}${redirectTo}${separator}googleCheck=true&token=${token}`
+      : `${process.env.FRONTEND_URL}${redirectTo}${separator}token=${token}`;
     
     const res = NextResponse.redirect(redirectUrl);
     

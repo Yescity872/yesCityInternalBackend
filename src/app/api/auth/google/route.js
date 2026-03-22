@@ -5,6 +5,7 @@ export async function GET(req) {
   const { searchParams } = new URL(req.url);
   const state = searchParams.get('state');
 
+  const redirect = searchParams.get('redirect'); // Captures return page URL
   let referredBy;
   
   // Parse state if provided (optional for Google OAuth)
@@ -30,17 +31,20 @@ export async function GET(req) {
   oauthURL.searchParams.set('access_type', 'offline');
   oauthURL.searchParams.set('prompt', 'consent');
   
-  // Pass state only if we have referral or login flag
-  if (referredBy) {
-    oauthURL.searchParams.set('state', JSON.stringify({ 
-      referredBy: referredBy || null,
-    }));
-  }
+  // Create our state object
+  const statePayload = {
+    referredBy: referredBy || null,
+    redirect: redirect || '/'
+  };
+
+  // Always set state since we now want to track the redirect URL
+  oauthURL.searchParams.set('state', JSON.stringify(statePayload));
 
   // Debugging logs
   console.log("🔍 redirect_uri being sent:", REDIRECT_URI);
   console.log("🔍 Full Google OAuth URL:", oauthURL.toString());
   if (referredBy) console.log("🎁 Referral code:", referredBy);
+  if (redirect) console.log("🧭 Redirect Target:", redirect);
 
   return NextResponse.redirect(oauthURL.toString());
 }
