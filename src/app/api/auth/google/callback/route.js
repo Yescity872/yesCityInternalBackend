@@ -22,14 +22,17 @@ export async function GET(req) {
     return NextResponse.json({ message: 'Authorization code missing' }, { status: 400 });
   }
 
-  // Retrieve referredBy from state (sent back by Google)
+  // Retrieve referredBy and returnTo from state (sent back by Google)
   let referredBy;
+  let returnTo;
   try {
     const parsedState = JSON.parse(state || '{}');
     referredBy = parsedState.referredBy;
+    returnTo = parsedState.returnTo;
   } catch (error) {
     console.error('Error parsing state:', error);
     referredBy = null;
+    returnTo = null;
   }
 
   try {
@@ -163,9 +166,20 @@ export async function GET(req) {
     );
 
     // Step 5: Redirect to frontend with token
+    let baseRedirectUrl = process.env.FRONTEND_URL;
+    if (returnTo) {
+      try {
+        const returnUrl = new URL(returnTo);
+        // Redirect back to the originating UI's origin (e.g., localhost:3001) where sessionStorage lives
+        baseRedirectUrl = returnUrl.origin;
+      } catch (e) {
+        console.error('Invalid returnTo URL', e);
+      }
+    }
+
     const redirectUrl = user.isNew 
-      ? `${process.env.FRONTEND_URL}/?googleCheck=true&token=${token}`
-      : `${process.env.FRONTEND_URL}/?token=${token}`;
+      ? `${baseRedirectUrl}/?googleCheck=true&token=${token}`
+      : `${baseRedirectUrl}/?token=${token}`;
     
     const res = NextResponse.redirect(redirectUrl);
     

@@ -6,12 +6,14 @@ export async function GET(req) {
   const state = searchParams.get('state');
 
   let referredBy;
+  let returnTo;
   
   // Parse state if provided (optional for Google OAuth)
   if (state) {
     try {
       const parsedState = JSON.parse(state);
       referredBy = parsedState.referredBy;
+      returnTo = parsedState.returnTo;
     } catch (error) {
       console.error('Error parsing state:', error);
       // Continue anyway - state is optional
@@ -30,10 +32,11 @@ export async function GET(req) {
   oauthURL.searchParams.set('access_type', 'offline');
   oauthURL.searchParams.set('prompt', 'consent');
   
-  // Pass state only if we have referral or login flag
-  if (referredBy) {
+  // Pass state only if we have referral or returnTo flag
+  if (referredBy || returnTo) {
     oauthURL.searchParams.set('state', JSON.stringify({ 
       referredBy: referredBy || null,
+      returnTo: returnTo || null,
     }));
   }
 
