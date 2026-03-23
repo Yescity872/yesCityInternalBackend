@@ -12,7 +12,7 @@ export async function POST(req) {
     return NextResponse.json({ message: 'Invalid JSON body' }, { status: 400 });
   }
 
-  const { email } = body;
+  const { email, type } = body;
 
   if (!email) {
     return NextResponse.json(
@@ -36,11 +36,20 @@ export async function POST(req) {
     // Check if email already exists and is verified
     const existingUser = await User.findOne({ email, isEmailVerified: true });
     
-    if (!existingUser) {
-      return NextResponse.json(
-        { message: 'Incorrect email or Email not registered' },
-        { status: 409 }
-      );
+    if (type === 'signup') {
+      if (existingUser) {
+        return NextResponse.json(
+          { message: 'Email is already registered. Please sign in.' },
+          { status: 409 }
+        );
+      }
+    } else {
+      if (!existingUser) {
+        return NextResponse.json(
+          { message: 'Incorrect email or Email not registered' },
+          { status: 409 }
+        );
+      }
     }
 
     // Generate 6-digit OTP
