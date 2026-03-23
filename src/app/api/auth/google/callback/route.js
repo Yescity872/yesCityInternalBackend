@@ -170,17 +170,21 @@ export async function GET(req) {
     if (returnTo) {
       try {
         const returnUrl = new URL(returnTo);
-        // Redirect back to the originating UI's origin (e.g., localhost:3001) where sessionStorage lives
+        // Use the origin from returnTo so popup redirects back correctly
         baseRedirectUrl = returnUrl.origin;
       } catch (e) {
         console.error('Invalid returnTo URL', e);
       }
     }
 
-    const redirectUrl = user.isNew 
-      ? `${baseRedirectUrl}/?googleCheck=true&token=${token}`
-      : `${baseRedirectUrl}/?token=${token}`;
-    
+    // If returnTo ends with /__google_callback, redirect popup to relay page
+    const isPopup = returnTo && returnTo.includes('/__google_callback');
+    const redirectUrl = isPopup
+      ? `${baseRedirectUrl}/__google_callback?token=${token}`
+      : user.isNew
+        ? `${baseRedirectUrl}/?googleCheck=true&token=${token}`
+        : `${baseRedirectUrl}/?token=${token}`;
+
     const res = NextResponse.redirect(redirectUrl);
     
     // Set HTTP-only cookie
