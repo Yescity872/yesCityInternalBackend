@@ -166,24 +166,28 @@ export async function GET(req) {
     );
 
     // Step 5: Redirect to frontend with token
-    let baseRedirectUrl = process.env.FRONTEND_URL;
+    let redirectUrl;
+
     if (returnTo) {
       try {
         const returnUrl = new URL(returnTo);
-        // Use the origin from returnTo so popup redirects back correctly
-        baseRedirectUrl = returnUrl.origin;
+        // Redirect to exact page the user was on (full path), with token in query string
+        // AuthContext will pick up the ?token= param, save to localStorage, then strip it from URL
+        const targetUrl = new URL(returnUrl.pathname, returnUrl.origin);
+        targetUrl.searchParams.set('token', token);
+        if (user.isNew) targetUrl.searchParams.set('googleCheck', 'true');
+        redirectUrl = targetUrl.toString();
       } catch (e) {
-        console.error('Invalid returnTo URL', e);
+        console.error('Invalid returnTo URL, falling back to FRONTEND_URL', e);
+        redirectUrl = user.isNew
+          ? `${process.env.FRONTEND_URL}/?googleCheck=true&token=${token}`
+          : `${process.env.FRONTEND_URL}/?token=${token}`;
       }
+    } else {
+      redirectUrl = user.isNew
+        ? `${process.env.FRONTEND_URL}/?googleCheck=true&token=${token}`
+        : `${process.env.FRONTEND_URL}/?token=${token}`;
     }
-
-    // If returnTo ends with /__google_callback, redirect popup to relay page
-    const isPopup = returnTo && returnTo.includes('/__google_callback');
-    const redirectUrl = isPopup
-      ? `${baseRedirectUrl}/__google_callback?token=${token}`
-      : user.isNew
-        ? `${baseRedirectUrl}/?googleCheck=true&token=${token}`
-        : `${baseRedirectUrl}/?token=${token}`;
 
     const res = NextResponse.redirect(redirectUrl);
     
