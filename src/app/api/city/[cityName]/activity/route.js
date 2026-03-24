@@ -91,7 +91,7 @@ async function coreHandler(req, context, user = null) {
 }
 
 // ✅ Public entrypoint
-import { getUserFromCookies } from "@/middleware/auth"; // import the helper
+
 
 export async function GET(req, context) {
   const { searchParams } = new URL(req.url);

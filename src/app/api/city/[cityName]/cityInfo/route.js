@@ -71,7 +71,7 @@ async function coreHandler(req, context, user = null) {
 
 
 // ✅ Public for page=1, Auth required for page>1
-import { getUserFromCookies } from "@/middleware/auth"; // import the helper
+
 
 export async function GET(req, context) {
   const { searchParams } = new URL(req.url);
