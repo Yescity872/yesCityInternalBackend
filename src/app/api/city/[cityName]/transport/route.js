@@ -18,7 +18,7 @@ async function coreHandler(req, context, user = null) {
     await connectToDatabase();
 
     const userPremium = user?.isPremium || 'FREE';
-    const { cityName } = context.params;
+    const { cityName } = await context.params;
     const formattedCityName = decodeURIComponent(cityName).toLowerCase();
 
     // const accessiblePremiums = getAccessiblePremiums(userPremium);
