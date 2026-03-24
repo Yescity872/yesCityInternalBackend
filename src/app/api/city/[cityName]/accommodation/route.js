@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/db';
 import Accommodation from '@/models/CityRoutes/Accommodation';
-import { withAuth } from '@/middleware/auth';
+import { withAuth, getUserFromCookies } from '@/middleware/auth';
 import { recordCategoryEngagement } from '@/lib/engagement'; // ✅ import utility
 
 function getAccessiblePremiums(userPremium) {

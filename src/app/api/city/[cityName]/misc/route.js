@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/db';
 import Misc from '@/models/CityRoutes/Misc';
-import { withAuth } from '@/middleware/auth';
+import { withAuth, getUserFromCookies } from '@/middleware/auth';
 import { recordCategoryEngagement } from '@/lib/engagement'; // ✅ import utility
 
 
